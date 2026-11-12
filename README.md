@@ -25,7 +25,7 @@ Die App läuft unter http://localhost:4311. Zum Entwickeln stattdessen `npm run 
 ## Bedienung
 
 - **Links:** Start, Suche, Ordner mit Themen; je Ordner steht das Thema mit dem jüngsten Eintrag oben. Das Plus neben einem Ordner legt ein Thema an.
-- **Zweite Spalte:** Einträge des Themas, neueste zuerst. Der Themenname lässt sich dort direkt ändern, daneben wechselt die Auswahl den Ordner des Themas. Der Papierkorb, der beim Überfahren eines Eintrags erscheint, löscht ihn.
+- **Zweite Spalte:** Einträge des Themas, neueste zuerst. Der Themenname lässt sich dort direkt ändern, daneben wechselt die Auswahl den Ordner des Themas oder legt über „Neuer Ordner …“ einen an. Der Papierkorb, der beim Überfahren eines Eintrags erscheint, löscht ihn.
 - **Dritte Spalte:** der Eintrag. Jede Eingabe wird nach einer halben Sekunde gespeichert. `- ` beginnt einen Stichpunkt, Enter führt ihn fort, Tab und Umschalt+Tab rücken ein und aus. Fotos per Knopf, Ziehen oder Einfügen; der erkannte Text wird unten angehängt. Die Themenauswahl neben dem Datum verschiebt den Eintrag samt seinen To-dos in ein anderes Thema.
 - **Vierte Spalte:** der Assistent, wahlweise für den Eintrag oder das ganze Thema. Vorgeschlagene To-dos übernimmt das Plus. Unten lässt sich das Modell wechseln (Opus 5.5, Sonnet 5.5, Haiku 5.5).
 - **Start:** offene To-dos nach Fälligkeit und alle Themen nach letztem Kontakt.

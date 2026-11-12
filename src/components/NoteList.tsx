@@ -3,6 +3,8 @@ import type { Actions } from "../store.ts";
 import { cx, firstLine, formatDate, groupNames } from "../util.ts";
 import { Icon } from "./Icon.tsx";
 
+const NEW_GROUP = "__new__";
+
 export function NoteList(props: {
   topic: Topic | null;
   notes: Note[];
@@ -51,11 +53,19 @@ export function NoteList(props: {
               aria-label="Ordner des Themas"
               title="Thema in einen anderen Ordner verschieben"
               value={topic.group}
-              onChange={(e) => void actions.updateTopic(topic.id, { group: e.target.value })}
+              onChange={(e) => {
+                let group = e.target.value;
+                if (group === NEW_GROUP) {
+                  group = window.prompt("Name des neuen Ordners")?.trim() ?? "";
+                  if (!group) return;
+                }
+                void actions.updateTopic(topic.id, { group });
+              }}
             >
               {groupNames(props.topics).map((g) => (
                 <option key={g}>{g}</option>
               ))}
+              <option value={NEW_GROUP}>Neuer Ordner …</option>
             </select>
             <button type="button" className="icon-btn ghost" title="Thema löschen" onClick={remove}>
               <Icon name="trash" />
