@@ -137,6 +137,7 @@ export function App() {
             <Editor
               key={note.id}
               note={note}
+              topics={state.topics}
               saveStatus={saveStatus}
               aiReady={state.aiReady}
               assistantOpen={assistantOpen}

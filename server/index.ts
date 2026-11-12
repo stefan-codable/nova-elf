@@ -101,6 +101,11 @@ api.patch("/notes/:id", async (c) => {
   if (!note) return c.json({ error: "Eintrag nicht gefunden." }, 404);
   const patch = await body(c, z.object({ title: z.string(), content: z.string(), date: isoDate, topicId: z.string() }).partial());
   if (patch.topicId && !db.topic(patch.topicId)) return c.json({ error: "Thema nicht gefunden." }, 404);
+  if (patch.topicId && patch.topicId !== note.topicId) {
+    // Verschieben: To-dos des Eintrags wandern mit. updatedAt bleibt, der Inhalt ist unverändert.
+    for (const t of db.todos()) if (t.noteId === note.id) db.putTodo({ ...t, topicId: patch.topicId });
+    return c.json(db.putNote({ ...note, ...patch }));
+  }
   return c.json(db.putNote({ ...note, ...patch, updatedAt: now() }));
 });
 
@@ -108,6 +113,8 @@ api.delete("/notes/:id", (c) => {
   db.removeNote(c.req.param("id"));
   return c.json({ ok: true });
 });
+
+api.get("/import/sources", (c) => c.json(db.importedSources()));
 
 // --- Fotos ----------------------------------------------------------------------
 

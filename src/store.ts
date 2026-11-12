@@ -101,6 +101,16 @@ export function useStore() {
         return note;
       },
       editNote,
+      /** Verschiebt einen Eintrag samt seinen To-dos in ein anderes Thema. */
+      async moveNote(id: string, topicId: string) {
+        await flush(id);
+        await api("PATCH", `/notes/${id}`, { topicId }).catch(fail);
+        update((s) => ({
+          ...s,
+          notes: s.notes.map((n) => (n.id === id ? { ...n, topicId } : n)),
+          todos: s.todos.map((t) => (t.noteId === id ? { ...t, topicId } : t)),
+        }));
+      },
       async deleteNote(id: string) {
         const entry = pending.current.get(id);
         if (entry) window.clearTimeout(entry.timer);

@@ -511,8 +511,36 @@ input.list-title:focus {
   text-align: left;
 }
 
-.note-item + .note-item {
+.note-row {
+  position: relative;
+}
+
+.note-row + .note-row {
   margin-top: 1px;
+}
+
+.note-row-del {
+  position: absolute;
+  top: 50%;
+  right: 5px;
+  width: 24px;
+  height: 24px;
+  transform: translateY(-50%);
+  background: var(--bg-hover);
+  opacity: 0;
+}
+
+.note-row:hover .note-row-del,
+.note-row-del:focus-visible {
+  opacity: 1;
+}
+
+.note-row-del:hover:not(:disabled) {
+  color: var(--danger, #d0453a);
+}
+
+.note-row:hover .note-item-dot {
+  visibility: hidden;
 }
 
 .note-item:hover {
@@ -585,6 +613,32 @@ input.list-title:focus {
 .date-input:hover,
 .date-input:focus {
   background: var(--bg-hover);
+}
+
+.topic-select {
+  height: 30px;
+  max-width: 190px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 7px;
+  background: none;
+  color: var(--text-2);
+  font: inherit;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.topic-select:hover,
+.topic-select:focus {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.list-head .topic-select {
+  flex: none;
+  max-width: 96px;
+  font-size: 12px;
 }
 
 .save-state {

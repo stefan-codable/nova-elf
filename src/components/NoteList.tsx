@@ -1,6 +1,6 @@
 import type { Note, Topic } from "../../shared/types.ts";
 import type { Actions } from "../store.ts";
-import { cx, firstLine, formatDate } from "../util.ts";
+import { cx, firstLine, formatDate, groupNames } from "../util.ts";
 import { Icon } from "./Icon.tsx";
 
 export function NoteList(props: {
@@ -23,6 +23,12 @@ export function NoteList(props: {
     void actions.deleteTopic(topic.id).then(props.onTopicDeleted);
   }
 
+  function removeNote(n: Note) {
+    const name = n.title || firstLine(n.content) || "Neuer Eintrag";
+    if (!window.confirm(`Eintrag „${name}“ vom ${formatDate(n.date)} löschen?\n\nEr bleibt im Datenordner unter „papierkorb“ erhalten.`)) return;
+    void actions.deleteNote(n.id);
+  }
+
   return (
     <section className="list">
       <header className="list-head">
@@ -40,6 +46,17 @@ export function NoteList(props: {
               }}
               onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
             />
+            <select
+              className="topic-select"
+              aria-label="Ordner des Themas"
+              title="Thema in einen anderen Ordner verschieben"
+              value={topic.group}
+              onChange={(e) => void actions.updateTopic(topic.id, { group: e.target.value })}
+            >
+              {groupNames(props.topics).map((g) => (
+                <option key={g}>{g}</option>
+              ))}
+            </select>
             <button type="button" className="icon-btn ghost" title="Thema löschen" onClick={remove}>
               <Icon name="trash" />
             </button>
@@ -57,14 +74,19 @@ export function NoteList(props: {
           const title = n.title || firstLine(n.content) || "Neuer Eintrag";
           const preview = n.title ? firstLine(n.content) : firstLine(n.content.split("\n").slice(1).join("\n"));
           return (
-            <button type="button" key={n.id} className={cx("note-item", n.id === props.selectedId && "active")} onClick={() => props.onSelect(n)}>
-              <span className="note-item-title">{title}</span>
-              <span className="note-item-meta">
-                <time>{formatDate(n.date)}</time>
-                <span className="note-item-preview">{topic ? preview : props.topics.find((t) => t.id === n.topicId)?.name}</span>
-              </span>
-              {n.analysis && <span className="note-item-dot" title="Ausgewertet" />}
-            </button>
+            <div key={n.id} className="note-row">
+              <button type="button" className={cx("note-item", n.id === props.selectedId && "active")} onClick={() => props.onSelect(n)}>
+                <span className="note-item-title">{title}</span>
+                <span className="note-item-meta">
+                  <time>{formatDate(n.date)}</time>
+                  <span className="note-item-preview">{topic ? preview : props.topics.find((t) => t.id === n.topicId)?.name}</span>
+                </span>
+                {n.analysis && <span className="note-item-dot" title="Ausgewertet" />}
+              </button>
+              <button type="button" className="icon-btn ghost note-row-del" title="Eintrag löschen" aria-label={`Eintrag „${title}“ löschen`} onClick={() => removeNote(n)}>
+                <Icon name="trash" />
+              </button>
+            </div>
           );
         })}
         {!notes.length && (

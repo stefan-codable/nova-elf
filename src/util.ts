@@ -52,3 +52,19 @@ export function firstLine(text: string) {
 }
 
 export const cx = (...parts: (string | false | null | undefined)[]) => parts.filter(Boolean).join(" ");
+
+const DEFAULT_GROUPS = ["Kunden", "Intern"];
+
+/** Ordner der linken Spalte: die festen zuerst, dann alle, die in Themen vorkommen. */
+export const groupNames = (topics: { group: string }[]) => [...new Set([...DEFAULT_GROUPS, ...topics.map((t) => t.group)])];
+
+/** Sortiert Themen nach letzter Aktivität: jüngstes Gesprächsdatum zuerst, Themen ohne Einträge nach Anlagedatum. */
+export function byLastActivity<T extends { id: string; createdAt: string }>(topics: T[], notes: { topicId: string; date: string; updatedAt: string }[]): T[] {
+  const last = new Map<string, string>();
+  for (const n of notes) {
+    const key = `${n.date} ${n.updatedAt}`;
+    if (key > (last.get(n.topicId) ?? "")) last.set(n.topicId, key);
+  }
+  const keyOf = (t: T) => last.get(t.id) ?? t.createdAt.slice(0, 10);
+  return [...topics].sort((a, b) => keyOf(b).localeCompare(keyOf(a)));
+}

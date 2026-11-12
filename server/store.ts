@@ -17,6 +17,9 @@ const topics = new Map<string, Topic>();
 const notes = new Map<string, Note>();
 const todos = new Map<string, Todo>();
 let settings: Settings = { model: "claude-opus-5-5" };
+/** Herkunfts-IDs gelöschter Importe, damit ein erneuter Import sie nicht zurückholt. */
+let dismissedSources: string[] = [];
+const dismissedPath = () => path.join(DATA_DIR, "import-dismissed.json");
 
 function readJson<T>(file: string, fallback: T): T {
   try {
@@ -40,6 +43,7 @@ export function load() {
   for (const t of readJson<Topic[]>(path.join(DATA_DIR, "topics.json"), [])) topics.set(t.id, t);
   for (const t of readJson<Todo[]>(path.join(DATA_DIR, "todos.json"), [])) todos.set(t.id, t);
   settings = { ...settings, ...readJson<Partial<Settings>>(path.join(DATA_DIR, "settings.json"), {}) };
+  dismissedSources = readJson<string[]>(dismissedPath(), []);
   for (const f of fs.readdirSync(NOTES_DIR)) {
     if (!f.endsWith(".json")) continue;
     const n = readJson<Note | null>(path.join(NOTES_DIR, f), null);
@@ -86,8 +90,16 @@ export const db = {
   },
 
   /** Gelöschtes landet im Ordner "papierkorb" und bleibt dort liegen. */
+  /** Alle Herkunfts-IDs, die schon einmal importiert wurden, auch die inzwischen gelöschten. */
+  importedSources: () => [...new Set([...dismissedSources, ...[...notes.values()].flatMap((n) => (n.source ? [n.source.id] : []))])],
+
   removeNote(id: string) {
+    const source = notes.get(id)?.source;
     if (!notes.delete(id)) return;
+    if (source && !dismissedSources.includes(source.id)) {
+      dismissedSources.push(source.id);
+      writeJson(dismissedPath(), dismissedSources);
+    }
     fs.renameSync(notePath(id), path.join(TRASH_DIR, `notiz-${id}-${Date.now()}.json`));
     for (const t of todos.values()) if (t.noteId === id) t.noteId = null;
     saveTodos();

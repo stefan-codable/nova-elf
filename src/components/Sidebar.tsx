@@ -1,13 +1,12 @@
 import { useState } from "react";
 import type { AppState } from "../../shared/types.ts";
 import type { Actions } from "../store.ts";
-import { cx, daysUntil } from "../util.ts";
+import { byLastActivity, cx, daysUntil, groupNames } from "../util.ts";
 import { Icon } from "./Icon.tsx";
 
 export type View = { kind: "home" } | { kind: "topic"; id: string } | { kind: "search" };
 export type Theme = "system" | "light" | "dark";
 
-const DEFAULT_GROUPS = ["Kunden", "Intern"];
 const themeLabel: Record<Theme, string> = { system: "Automatisch", light: "Hell", dark: "Dunkel" };
 const themeIcon = { system: "auto", light: "sun", dark: "moon" } as const;
 
@@ -24,7 +23,7 @@ export function Sidebar(props: {
   const { state, view, actions } = props;
   const [adding, setAdding] = useState<string | null>(null);
 
-  const groups = [...new Set([...DEFAULT_GROUPS, ...state.topics.map((t) => t.group)])];
+  const groups = groupNames(state.topics);
   const openTodos = state.todos.filter((t) => !t.done);
   const dueNow = openTodos.filter((t) => t.due && daysUntil(t.due) <= 0).length;
 
@@ -65,7 +64,7 @@ export function Sidebar(props: {
 
       <div className="groups">
         {groups.map((group) => {
-          const topics = state.topics.filter((t) => t.group === group).sort((a, b) => a.name.localeCompare(b.name, "de"));
+          const topics = byLastActivity(state.topics.filter((t) => t.group === group), state.notes);
           return (
             <section key={group}>
               <header className="group-head">

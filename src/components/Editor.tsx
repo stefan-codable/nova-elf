@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
-import type { Note } from "../../shared/types.ts";
+import type { Note, Topic } from "../../shared/types.ts";
 import type { Actions, SaveStatus } from "../store.ts";
-import { cx, timeOfDay } from "../util.ts";
+import { cx, groupNames, timeOfDay } from "../util.ts";
 import { Icon } from "./Icon.tsx";
 
 const BULLET = /^(\s*)((?:[-*•–]|\d+\.)\s+)?/;
@@ -45,6 +45,7 @@ function handleKey(e: React.KeyboardEvent<HTMLTextAreaElement>, commit: (value: 
 
 export function Editor(props: {
   note: Note;
+  topics: Topic[];
   saveStatus: SaveStatus;
   aiReady: boolean;
   assistantOpen: boolean;
@@ -99,6 +100,26 @@ export function Editor(props: {
           value={note.date}
           onChange={(e) => e.target.value && actions.editNote(note.id, { date: e.target.value })}
         />
+        <select
+          className="topic-select"
+          aria-label="Thema des Eintrags"
+          title="In ein anderes Thema verschieben"
+          value={note.topicId}
+          onChange={(e) => void actions.moveNote(note.id, e.target.value)}
+        >
+          {groupNames(props.topics).map((group) => (
+            <optgroup key={group} label={group}>
+              {props.topics
+                .filter((t) => t.group === group)
+                .sort((a, b) => a.name.localeCompare(b.name, "de"))
+                .map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
+            </optgroup>
+          ))}
+        </select>
         <span className={cx("save-state", props.saveStatus)} aria-live="polite">
           {props.saveStatus === "saving" ? "Speichert …" : props.saveStatus === "error" ? "Nicht gespeichert" : "Gespeichert"}
         </span>

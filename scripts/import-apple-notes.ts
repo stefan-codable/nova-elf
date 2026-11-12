@@ -165,7 +165,8 @@ const short = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1)}…
 
 async function main() {
   const state = await call<AppState>("GET", "/state");
-  const imported = new Set(state.notes.flatMap((n) => (n.source?.kind === "apple-notes" ? [n.source.id] : [])));
+  // Enthält auch Notizen, die nach dem Import in Nova Elf gelöscht wurden.
+  const imported = new Set(await call<string[]>("GET", "/import/sources"));
 
   console.log("Lese Notizen-App …");
   const all = await readAppleNotes();
@@ -197,7 +198,7 @@ async function main() {
     ready.push({ ...n, content });
   }
 
-  console.log(`${all.length} Notizen gefunden, ${known} bereits übernommen, ${skipped.length} übersprungen, ${ready.length} zu übernehmen.`);
+  console.log(`${all.length} Notizen gefunden, ${known} bereits übernommen oder gelöscht, ${skipped.length} übersprungen, ${ready.length} zu übernehmen.`);
   if (skipped.length) {
     console.log("\nÜbersprungen (bleiben nur in der Notizen-App):");
     for (const s of skipped) console.log(`  - ${short(s.title, 60)}  [${s.reason}]`);
