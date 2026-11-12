@@ -7,7 +7,8 @@
     "dev": "concurrently -k -n api,web -c gray,blue \"tsx watch server/index.ts\" \"vite\"",
     "build": "tsc --noEmit && vite build",
     "start": "vite build && tsx server/index.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "import:notes": "tsx scripts/import-apple-notes.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.8.0",

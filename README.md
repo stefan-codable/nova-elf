@@ -51,6 +51,22 @@ cd data && git remote add origin git@github.com:<konto>/nova-elf-daten.git
 
 `data/` und `.env` sind vom Code-Repository ausgenommen, Notizen und Schlüssel landen also nie im Code.
 
+## Import aus der Notizen-App
+
+Übernimmt Notizen aus der Notizen-App von macOS als Einträge. Nova Elf muss dabei laufen.
+
+```bash
+npm run import:notes
+```
+
+zeigt, welche Notiz in welches Thema käme, und schreibt nichts. Die Zuordnung zu Themen schlägt die KI vor; vorhandene Themen werden wiederverwendet.
+
+```bash
+npm run import:notes -- --apply
+```
+
+übernimmt den zuletzt gezeigten Plan. Jeder Eintrag merkt sich seine Herkunft, ein erneuter Lauf holt nur neue Notizen; spätere Änderungen an schon übernommenen Notizen werden nicht nachgezogen. Notizen, die nach Zugangsdaten aussehen (API-Schlüssel, Passwörter, zufällige Zeichenfolgen), sowie gesperrte Notizen werden übersprungen: Sie gehen weder an die Claude API noch in den Datenordner. Die Prüfung läuft lokal und ist bewusst streng. Bilder in Notizen werden nicht übernommen.
+
 ## Aufbau
 
 ```
@@ -58,6 +74,7 @@ server/index.ts   Hono-Server, nur an 127.0.0.1 gebunden: API, Fotos, gebaute Ob
 server/store.ts   Dateiablage und Git-Sicherung
 server/ai.ts      Aufrufe der Claude API (Auswertung, Foto-Erkennung), Prompts
 shared/types.ts   gemeinsame Typen, Modellliste
+scripts/         Import aus der Notizen-App
 src/              Oberfläche (React, Vite), Gestaltung in src/styles.css
 ```
 

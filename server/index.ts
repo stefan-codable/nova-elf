@@ -81,7 +81,16 @@ api.delete("/topics/:id", (c) => {
 // --- Einträge -------------------------------------------------------------------
 
 api.post("/notes", async (c) => {
-  const input = await body(c, z.object({ topicId: z.string(), date: isoDate, title: z.string().default(""), content: z.string().default("") }));
+  const input = await body(
+    c,
+    z.object({
+      topicId: z.string(),
+      date: isoDate,
+      title: z.string().default(""),
+      content: z.string().default(""),
+      source: z.object({ kind: z.literal("apple-notes"), id: z.string().min(1) }).optional(),
+    }),
+  );
   if (!db.topic(input.topicId)) return c.json({ error: "Thema nicht gefunden." }, 404);
   const note: Note = { id: newId(), ...input, images: [], createdAt: now(), updatedAt: now() };
   return c.json(db.putNote(note));

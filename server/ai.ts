@@ -119,6 +119,60 @@ Gib einen Überblick über das gesamte Thema: Wo stehen wir, wie hat es sich ent
   );
 }
 
+const AssignmentSchema = z.object({
+  assignments: z.array(
+    z.object({
+      index: z.number().describe("Nummer der Notiz aus der Liste."),
+      topic: z.string().describe("Name des Themas: Firma, Person oder Vorhaben, kurz."),
+      group: z.enum(["Kunden", "Intern", "Privat"]),
+    }),
+  ),
+});
+
+export interface AssignItem {
+  index: number;
+  title: string;
+  date: string;
+  excerpt: string;
+}
+
+/** Ordnet importierte Notizen Themen zu. Bestehende Themen werden bevorzugt wiederverwendet. */
+export async function assignTopics(model: ModelId, existing: Pick<Topic, "name" | "group">[], items: AssignItem[]) {
+  const started = Date.now();
+  const known = existing.length ? existing.map((t) => `- ${t.name} (${t.group})`).join("\n") : "Noch keine.";
+  const list = items
+    .map((i) => `<notiz nr="${i.index}" datum="${i.date}" titel="${i.title}">\n${i.excerpt}\n</notiz>`)
+    .join("\n\n");
+  const res = await api().beta.messages.parse({
+    model,
+    max_tokens: 16000,
+    system:
+      "Du sortierst die gesammelten Notizen eines Geschäftsführers in Themen ein. Ein Thema ist ein Kunde, ein Interessent, ein internes Vorhaben oder ein privater Bereich. Die Ordner sind: Kunden (Kunden, Interessenten, Partner), Intern (eigene Firma, Team, Ideen, Technik), Privat (alles Persönliche).",
+    messages: [
+      {
+        role: "user",
+        content: `Bereits vorhandene Themen:
+${known}
+
+Ordne jede der folgenden Notizen genau einem Thema zu.
+- Verwende ein vorhandenes Thema, wenn die Notiz dazu passt, und schreibe seinen Namen dann exakt so.
+- Notizen zum selben Kunden oder Vorhaben bekommen denselben Themennamen, auch wenn die Titel verschieden sind.
+- Benenne Themen kurz nach Firma, Person oder Vorhaben, so wie es in den Notizen steht. Erfinde keine Firmennamen.
+- Einzelne Notizen, die zu nichts anderem gehören, sammelst du je Ordner in einem Thema "Sonstiges", statt für jede ein eigenes Thema anzulegen.
+- Gib für jede Nummer genau eine Zuordnung zurück.
+
+${list}`,
+      },
+    ],
+    output_config: { effort: "medium", format: betaZodOutputFormat(AssignmentSchema) },
+    ...fallbackParams(model),
+  });
+  logUsage("assign", started, res);
+  if (res.stop_reason === "refusal") throw new AiError("Das Modell hat die Zuordnung abgelehnt.");
+  if (res.stop_reason === "max_tokens" || !res.parsed_output) throw new AiError("Die Zuordnung war unvollständig. Bitte noch einmal versuchen.");
+  return res.parsed_output.assignments;
+}
+
 const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"] as const;
 export type ImageType = (typeof IMAGE_TYPES)[number];
 export const isImageType = (t: string): t is ImageType => (IMAGE_TYPES as readonly string[]).includes(t);

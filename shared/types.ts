@@ -32,6 +32,13 @@ export interface Note {
   createdAt: string;
   updatedAt: string;
   analysis?: Analysis;
+  /** Herkunft eines importierten Eintrags; verhindert Dubletten bei erneutem Import. */
+  source?: NoteSource;
+}
+
+export interface NoteSource {
+  kind: "apple-notes";
+  id: string;
 }
 
 export interface SuggestedTodo {
