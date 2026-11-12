@@ -144,6 +144,10 @@ export function App() {
               actions={actions}
               onToggleAssistant={() => setAssistantOpen((v) => !v)}
               onDeleted={() => setNoteId(null)}
+              onMoved={(topicId) => {
+                setNoteId(note.id);
+                setView({ kind: "topic", id: topicId });
+              }}
             />
           ) : (
             <section className="editor">

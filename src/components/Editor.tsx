@@ -43,6 +43,8 @@ function handleKey(e: React.KeyboardEvent<HTMLTextAreaElement>, commit: (value: 
   }
 }
 
+const NEW_TOPIC = "__new__";
+
 export function Editor(props: {
   note: Note;
   topics: Topic[];
@@ -52,6 +54,7 @@ export function Editor(props: {
   actions: Actions;
   onToggleAssistant: () => void;
   onDeleted: () => void;
+  onMoved: (topicId: string) => void;
 }) {
   const { note, actions } = props;
   const [busy, setBusy] = useState(0);
@@ -70,6 +73,19 @@ export function Editor(props: {
         setBusy((n) => n - 1);
       }
     }
+  }
+
+  /** Verschiebt den Eintrag in ein anderes Thema; "Neues Thema …" legt es im selben Ordner an. */
+  async function move(target: string) {
+    let topicId = target;
+    if (target === NEW_TOPIC) {
+      const name = window.prompt("Name des neuen Themas")?.trim();
+      if (!name) return;
+      const group = props.topics.find((t) => t.id === note.topicId)?.group ?? "Intern";
+      topicId = (await actions.createTopic(name, group)).id;
+    }
+    await actions.moveNote(note.id, topicId);
+    props.onMoved(topicId);
   }
 
   function remove() {
@@ -105,7 +121,7 @@ export function Editor(props: {
           aria-label="Thema des Eintrags"
           title="In ein anderes Thema verschieben"
           value={note.topicId}
-          onChange={(e) => void actions.moveNote(note.id, e.target.value)}
+          onChange={(e) => void move(e.target.value)}
         >
           {groupNames(props.topics).map((group) => (
             <optgroup key={group} label={group}>
@@ -119,6 +135,7 @@ export function Editor(props: {
                 ))}
             </optgroup>
           ))}
+          <option value={NEW_TOPIC}>Neues Thema …</option>
         </select>
         <span className={cx("save-state", props.saveStatus)} aria-live="polite">
           {props.saveStatus === "saving" ? "Speichert …" : props.saveStatus === "error" ? "Nicht gespeichert" : "Gespeichert"}
