@@ -61,8 +61,19 @@ shared/types.ts   gemeinsame Typen, Modellliste
 src/              Oberfläche (React, Vite), Gestaltung in src/styles.css
 ```
 
+## Modelle
+
+Standard ist Opus 5.5. Vergleich vom 12.11.2026 an einer Testnotiz (13 Stichpunkte, je zwei Läufe, Preise laut Anthropic-Preisliste):
+
+| Modell | Dauer Auswertung | Kosten je Auswertung | Eindruck |
+| --- | --- | --- | --- |
+| Opus 5.5 | 22 bis 26 s | ca. 0,06 $ | vollständigste To-dos, Termine mit Puffer vor Fristen |
+| Sonnet 5.5 | 13 s | ca. 0,02 $ | nah an Opus, lässt gelegentlich ein To-do aus |
+| Haiku 5.5 | 12 bis 13 s | ca. 0,002 $ | brauchbar, aber dünner; bei Fotos kleine Abweichungen vom Original |
+
+Jeder KI-Aufruf schreibt eine Zeile mit Modell, Dauer und Tokenverbrauch ins Server-Protokoll (`[ai] …`).
+
 ## Offen
 
 - Outlook-Kalender anbinden (Termine auf der Startseite, Vorbereitung je Termin).
 - Freie Aufträge an den Assistenten („erstelle daraus ein Angebot“).
-- Vergleich der drei Modelle an echten Notizen, um das Standardmodell festzulegen.

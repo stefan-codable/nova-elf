@@ -58,7 +58,14 @@ function renderTodos(todos: Todo[]) {
   return open.map((t) => `- ${t.text}${t.due ? ` (fällig ${t.due})` : ""}`).join("\n");
 }
 
+/** Eine Zeile je Aufruf im Server-Protokoll: Modell, Dauer, Tokenverbrauch. Keine Inhalte. */
+function logUsage(kind: string, started: number, res: { model: string; usage: { input_tokens: number; output_tokens: number } }) {
+  const seconds = ((Date.now() - started) / 1000).toFixed(1);
+  console.log(`[ai] ${kind} ${res.model} ${seconds}s in=${res.usage.input_tokens} out=${res.usage.output_tokens}`);
+}
+
 async function analyze(model: ModelId, prompt: string): Promise<Analysis> {
+  const started = Date.now();
   const res = await api().beta.messages.parse({
     model,
     max_tokens: 16000,
@@ -67,6 +74,7 @@ async function analyze(model: ModelId, prompt: string): Promise<Analysis> {
     output_config: { effort: "medium", format: betaZodOutputFormat(AnalysisSchema) },
     ...fallbackParams(model),
   });
+  logUsage("analyze", started, res);
   if (res.stop_reason === "refusal") throw new AiError("Das Modell hat die Anfrage abgelehnt.");
   if (res.stop_reason === "max_tokens" || !res.parsed_output) throw new AiError("Die Antwort des Modells war unvollständig. Bitte noch einmal versuchen.");
   return { ...res.parsed_output, model: res.model, createdAt: new Date().toISOString() };
@@ -116,6 +124,7 @@ export type ImageType = (typeof IMAGE_TYPES)[number];
 export const isImageType = (t: string): t is ImageType => (IMAGE_TYPES as readonly string[]).includes(t);
 
 export async function transcribe(model: ModelId, data: Buffer, mediaType: ImageType): Promise<string> {
+  const started = Date.now();
   const res = await api().beta.messages.create({
     model,
     max_tokens: 16000,
@@ -141,6 +150,7 @@ export async function transcribe(model: ModelId, data: Buffer, mediaType: ImageT
     ],
     ...fallbackParams(model),
   });
+  logUsage("transcribe", started, res);
   if (res.stop_reason === "refusal") throw new AiError("Das Modell hat die Auswertung des Bildes abgelehnt.");
   return res.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("\n").trim();
 }
