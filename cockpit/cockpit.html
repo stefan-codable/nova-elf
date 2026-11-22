@@ -1,32 +1,38 @@
 <title>Elf Cockpit</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Hanken+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
-/* Layout: Arbeitsfläche in zwei Spalten. Links Heute und Aufgaben (wird bedient), rechts Eingang und Kunden (wird nachgeschlagen). Am Handy gestapelt. */
+/* Layout: drei Spalten nebeneinander (Heute | Aufgaben | Eingang + Kunden), unter 1240 px zwei, am Handy eine.
+   Farben: Nova Marine als Grund, Cobalt für Bedienung und Links, Lime als einziger Kontrast (Hauptaktion, Markierung). */
 :root {
-  --bg: #f2f5f3; --surface: #ffffff; --ink: #17201d; --muted: #5d6a66; --line: #dbe2df;
-  --accent: #1d6b58; --accent-ink: #ffffff; --accent-soft: #e0eee9;
-  --warn: #ad4f17; --warn-soft: #f7e8dd; --soon: #2d5c9e; --soon-soft: #e3ebf6;
-  --f-display: "Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
-  --f-body: "Hanken Grotesk", "Helvetica Neue", system-ui, sans-serif;
-  --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
-  --r: 10px;
+  --marine: #0a192f; --marine-deep: #071121; --cobalt: #0056d6; --lime: #eee615;
+  --bg: #f6f6f3; --surface: #ffffff; --ink: #0a192f; --muted: #556275; --line: #e3e4e1;
+  --accent: #0056d6; --accent-ink: #ffffff; --accent-soft: #e7eefc;
+  --primary: #0a192f; --primary-ink: #eee615;
+  --mark: #eee615; --mark-ink: #0a192f;
+  --warn: #c2410c; --warn-soft: #fdebe1; --soon: #0056d6; --soon-soft: #e7eefc;
+  --f-display: "Archivo", "Helvetica Neue", system-ui, sans-serif;
+  --f-body: "Inter", "Helvetica Neue", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --r: 12px;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
-  --bg: #101614; --surface: #171f1c; --ink: #e5ebe9; --muted: #92a19c; --line: #29332f;
-  --accent: #5cbfa2; --accent-ink: #0d1412; --accent-soft: #1c302b;
-  --warn: #f08a52; --warn-soft: #3a2418; --soon: #86aee8; --soon-soft: #1d2a3d; color-scheme: dark } }
+  --bg: #071121; --surface: #0d1d35; --ink: #edf2f9; --muted: #93a3bb; --line: #1c3050;
+  --accent: #6ea6ff; --accent-ink: #071121; --accent-soft: #13305e;
+  --primary: #eee615; --primary-ink: #0a192f;
+  --warn: #ff9466; --warn-soft: #3a1f1a; --soon: #6ea6ff; --soon-soft: #13305e; color-scheme: dark } }
 :root[data-theme="dark"] {
-  --bg: #101614; --surface: #171f1c; --ink: #e5ebe9; --muted: #92a19c; --line: #29332f;
-  --accent: #5cbfa2; --accent-ink: #0d1412; --accent-soft: #1c302b;
-  --warn: #f08a52; --warn-soft: #3a2418; --soon: #86aee8; --soon-soft: #1d2a3d; color-scheme: dark }
+  --bg: #071121; --surface: #0d1d35; --ink: #edf2f9; --muted: #93a3bb; --line: #1c3050;
+  --accent: #6ea6ff; --accent-ink: #071121; --accent-soft: #13305e;
+  --primary: #eee615; --primary-ink: #0a192f;
+  --warn: #ff9466; --warn-soft: #3a1f1a; --soon: #6ea6ff; --soon-soft: #13305e; color-scheme: dark }
 
 * { box-sizing: border-box }
 [hidden] { display: none !important }
 body { background: var(--bg); color: var(--ink); font: 15px/1.5 var(--f-body);
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 20px 48px }
-.wrap { max-width: 1180px; margin: 0 auto; display: grid; gap: 20px }
+.wrap { max-width: 1760px; margin: 0 auto; display: grid; gap: 20px }
 button, input, textarea { font: inherit; color: inherit }
 button { cursor: pointer }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
@@ -34,21 +40,29 @@ a { color: var(--accent) }
 
 header.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; padding-bottom: 14px; border-bottom: 1px solid var(--line) }
 .brand { display: grid; gap: 2px }
-.brand h1 { margin: 0; font: 700 34px/1 var(--f-display); letter-spacing: -0.02em }
+.brand h1 { margin: 0; font: 800 34px/1 var(--f-display); letter-spacing: -0.03em }
+.brand h1 .punkt { color: var(--accent) }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .brand h1 .punkt { color: var(--lime) } }
+:root[data-theme="dark"] .brand h1 .punkt { color: var(--lime) }
 .brand .date { color: var(--muted) }
 .tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center }
 .stand { font: 12px var(--f-mono); color: var(--muted); margin-right: 6px }
 .btn { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--surface); padding: 7px 12px; border-radius: 999px; text-decoration: none; color: var(--ink); font-size: 14px; white-space: nowrap }
 .btn:hover { border-color: var(--accent) }
-.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent) }
+.btn.primary { background: var(--primary); color: var(--primary-ink); border-color: var(--primary); font-weight: 600 }
+.btn.primary:hover { border-color: var(--accent) }
 .btn.small { padding: 4px 10px; font-size: 13px }
 
-.grid { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr); gap: 20px; align-items: start }
-@media (max-width: 860px) { .grid { grid-template-columns: minmax(0, 1fr) } }
-.col { display: grid; gap: 20px; min-width: 0 }
+/* Drei Spalten ab 1240 px, darunter zwei (Heute und Aufgaben links), am Handy eine */
+.grid { display: grid; gap: 20px; align-items: start;
+  grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr) minmax(0, .82fr); grid-template-areas: "heute aufgaben rechts" }
+.c-heute { grid-area: heute } .c-aufgaben { grid-area: aufgaben } .c-rechts { grid-area: rechts }
+@media (max-width: 1239px) { .grid { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); grid-template-areas: "heute rechts" "aufgaben rechts" } .c-rechts { align-self: start } }
+@media (max-width: 860px) { .grid { grid-template-columns: minmax(0, 1fr); grid-template-areas: "heute" "aufgaben" "rechts" } }
+.col { display: grid; gap: 20px; min-width: 0; align-content: start }
 
 section.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 16px 18px; min-width: 0 }
-.panel > h2 { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0 0 12px; font: 600 18px/1.2 var(--f-display) }
+.panel > h2 { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 12px; margin: 0 0 12px; font: 700 18px/1.2 var(--f-display); letter-spacing: -0.01em }
 .panel > h2 small { font: 13px var(--f-body); color: var(--muted) }
 .empty { color: var(--muted); padding: 6px 0; display: grid; gap: 8px; justify-items: start }
 
@@ -129,7 +143,7 @@ details.erledigt summary { cursor: pointer; color: var(--muted); font-size: 14px
 <div class="wrap">
   <header class="top">
     <div class="brand">
-      <h1>Elf</h1>
+      <h1>Elf<span class="punkt">.</span></h1>
       <div class="date" id="heute-datum"></div>
     </div>
     <div class="tools">
@@ -143,7 +157,7 @@ details.erledigt summary { cursor: pointer; color: var(--muted); font-size: 14px
   <p class="note" id="hinweis" hidden></p>
 
   <div class="grid">
-    <div class="col">
+    <div class="col c-heute">
       <section class="panel" aria-labelledby="h-heute">
         <h2 id="h-heute"><span id="heute-titel">Heute</span> <small id="briefing-stand"></small></h2>
         <div class="counts" id="counts"></div>
@@ -154,7 +168,9 @@ details.erledigt summary { cursor: pointer; color: var(--muted); font-size: 14px
           <p class="note" id="mails-rest" hidden></p>
         </div>
       </section>
+    </div>
 
+    <div class="col c-aufgaben">
       <section class="panel" aria-labelledby="h-aufgaben">
         <h2 id="h-aufgaben">Aufgaben
           <span class="seg" role="group" aria-label="Gruppieren">
@@ -170,7 +186,7 @@ details.erledigt summary { cursor: pointer; color: var(--muted); font-size: 14px
       </section>
     </div>
 
-    <div class="col">
+    <div class="col c-rechts">
       <section class="panel" aria-labelledby="h-eingang">
         <h2 id="h-eingang">Eingang <small>Elf sortiert beim nächsten Start ein</small></h2>
         <form class="erfassen" id="erfassen">
