@@ -65,6 +65,13 @@ section.panel { background: var(--surface); border: 1px solid var(--line); borde
 .termin .vorb { grid-column: 2; color: var(--muted); font-size: 14px }
 .tag { font-size: 12px; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); margin-left: 6px; white-space: nowrap }
 
+.mails { margin-top: 14px; padding-top: 6px; border-top: 1px solid var(--line) }
+.mails h3 { margin: 6px 0 2px; font: 600 12px var(--f-body); letter-spacing: .06em; text-transform: uppercase; color: var(--muted) }
+.mail .von { font-weight: 600 }
+.mail .betreff { overflow-wrap: anywhere }
+.tag.art-antwort { border-color: var(--warn); color: var(--warn) }
+.tag.art-termin { border-color: var(--soon); color: var(--soon) }
+
 /* Aufgaben */
 .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden }
 .seg button { border: 0; background: transparent; padding: 4px 12px; font-size: 13px; color: var(--muted) }
@@ -139,6 +146,11 @@ details.erledigt summary { cursor: pointer; color: var(--muted); font-size: 14px
         <h2 id="h-heute">Heute <small id="briefing-stand"></small></h2>
         <div class="counts" id="counts"></div>
         <ul class="termine" id="termine"></ul>
+        <div class="mails" id="mails" hidden>
+          <h3 id="mails-titel">Ungelesene Mails</h3>
+          <ul class="termine" id="mail-liste"></ul>
+          <p class="note" id="mails-rest" hidden></p>
+        </div>
       </section>
 
       <section class="panel" aria-labelledby="h-aufgaben">
@@ -323,12 +335,37 @@ details.erledigt summary { cursor: pointer; color: var(--muted); font-size: 14px
   }
 
   // Heute (Briefing)
+  const ART_TEXT = { antwort: "Antwort nötig", termin: "Termin", info: "Info" };
+  function renderMails(h) {
+    const box = $("mails");
+    const mails = h && h.datum === heute() && Array.isArray(h.mails) ? h.mails : null;
+    box.hidden = !mails;
+    if (!mails) return;
+    const n = mails.filter((m) => m.art === "antwort").length;
+    $("mails-titel").textContent = `Ungelesene Mails · ${mails.length}${n ? ` · ${n} mit Antwort nötig` : ""}`;
+    const ul = $("mail-liste"); ul.replaceChildren();
+    if (!mails.length) ul.append(el("li", { class: "empty", text: "Nichts, das eine Handlung braucht." }));
+    for (const m of mails) {
+      const zeit = (m.eingang || "").slice(11, 16) || (m.eingang || "").slice(5, 10);
+      ul.append(el("li", { class: "termin mail" },
+        el("span", { class: "zeit", text: zeit }),
+        el("span", {}, el("span", { class: "von", text: m.von || "" }), m.art ? el("span", { class: "tag art-" + m.art, text: ART_TEXT[m.art] || m.art }) : null,
+          el("span", { class: "betreff", text: m.betreff ? " · " + m.betreff : "" })),
+        m.kern ? el("span", { class: "vorb", text: m.kern }) : null,
+        m.art === "antwort" ? el("span", { class: "vorb" }, el("button", { class: "btn small", type: "button", text: "Antwort entwerfen lassen", "data-copy": `Elf: Entwirf eine Antwort auf die Mail von ${m.von} „${m.betreff}“: ` })) : null));
+    }
+    const rest = $("mails-rest");
+    rest.hidden = !h.mailsUebrige;
+    rest.textContent = h.mailsUebrige ? `Dazu ${h.mailsUebrige} Newsletter und Benachrichtigungen.` : "";
+  }
+
   function renderHeute() {
     const ul = $("termine"); ul.replaceChildren();
     const h = S.heute;
+    renderMails(h);
     if (!h || h.datum !== heute() || !Array.isArray(h.termine)) {
       $("briefing-stand").textContent = "";
-      ul.append(el("li", { class: "empty" }, el("span", { text: "Noch kein Briefing für heute. Elf liest dazu deinen Kalender und bereitet die Termine vor." }),
+      ul.append(el("li", { class: "empty" }, el("span", { text: "Noch kein Briefing für heute. Elf liest dazu Kalender und ungelesene Mails und bereitet die Termine vor." }),
         el("button", { class: "btn small", type: "button", "data-copy": "Elf: Was steht heute an?", text: "Anfrage kopieren" })));
       return;
     }

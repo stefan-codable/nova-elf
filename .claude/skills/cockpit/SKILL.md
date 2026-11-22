@@ -24,8 +24,8 @@ Artefakt-URL steht in `.claude/skills/cockpit/artefakt.json` (`url`). Wahrheit s
 ## Was im Cockpit landet
 - `aufgaben`: offene und in den letzten 30 Tagen erledigte Aufgaben (Text, Fälligkeit, Kunde, Reihenfolge).
 - `kunden`: je Ordner Name, Bereich, Stand, Nächster Schritt, Offene Punkte, Ansprechpartner, letzter Kontakt (Datum des jüngsten Eintrags).
-- `meta/heute`: Termine aus `daten/briefings/<heute>.json`, `meta/stand`: Zeitpunkt, offene Aufgaben, Rückfragen.
-- Nie: Notiztexte, Mails, Zugangsdaten. Steht in einer `_uebersicht.md` etwas Vertrauliches, vor dem Senden entfernen.
+- `meta/heute`: Termine und Mail-Übersicht (Absender, Betreff, ein Satz Kern) aus `daten/briefings/<heute>.json`, `meta/stand`: Zeitpunkt, offene Aufgaben, Rückfragen.
+- Nie: Notiztexte, Mailtexte, Mailadressen, Anhänge, Zugangsdaten. Steht in einer `_uebersicht.md` etwas Vertrauliches, vor dem Senden entfernen.
 
 ## Regeln
 - Das Cockpit ist nur für Stefan lesbar (Zugriffsregel `owner`). Freigeben macht nur Stefan selbst.
