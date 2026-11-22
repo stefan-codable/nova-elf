@@ -1,0 +1,447 @@
+<title>Elf Cockpit</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Hanken+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: Arbeitsfläche in zwei Spalten. Links Heute und Aufgaben (wird bedient), rechts Eingang und Kunden (wird nachgeschlagen). Am Handy gestapelt. */
+:root {
+  --bg: #f2f5f3; --surface: #ffffff; --ink: #17201d; --muted: #5d6a66; --line: #dbe2df;
+  --accent: #1d6b58; --accent-ink: #ffffff; --accent-soft: #e0eee9;
+  --warn: #ad4f17; --warn-soft: #f7e8dd; --soon: #2d5c9e; --soon-soft: #e3ebf6;
+  --f-display: "Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --f-body: "Hanken Grotesk", "Helvetica Neue", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --r: 10px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #101614; --surface: #171f1c; --ink: #e5ebe9; --muted: #92a19c; --line: #29332f;
+  --accent: #5cbfa2; --accent-ink: #0d1412; --accent-soft: #1c302b;
+  --warn: #f08a52; --warn-soft: #3a2418; --soon: #86aee8; --soon-soft: #1d2a3d; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #101614; --surface: #171f1c; --ink: #e5ebe9; --muted: #92a19c; --line: #29332f;
+  --accent: #5cbfa2; --accent-ink: #0d1412; --accent-soft: #1c302b;
+  --warn: #f08a52; --warn-soft: #3a2418; --soon: #86aee8; --soon-soft: #1d2a3d; color-scheme: dark }
+
+* { box-sizing: border-box }
+[hidden] { display: none !important }
+body { background: var(--bg); color: var(--ink); font: 15px/1.5 var(--f-body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 20px 48px }
+.wrap { max-width: 1180px; margin: 0 auto; display: grid; gap: 20px }
+button, input, textarea { font: inherit; color: inherit }
+button { cursor: pointer }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
+a { color: var(--accent) }
+
+header.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; padding-bottom: 14px; border-bottom: 1px solid var(--line) }
+.brand { display: grid; gap: 2px }
+.brand h1 { margin: 0; font: 700 34px/1 var(--f-display); letter-spacing: -0.02em }
+.brand .date { color: var(--muted) }
+.tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center }
+.stand { font: 12px var(--f-mono); color: var(--muted); margin-right: 6px }
+.btn { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--surface); padding: 7px 12px; border-radius: 999px; text-decoration: none; color: var(--ink); font-size: 14px; white-space: nowrap }
+.btn:hover { border-color: var(--accent) }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent) }
+.btn.small { padding: 4px 10px; font-size: 13px }
+
+.grid { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr); gap: 20px; align-items: start }
+@media (max-width: 860px) { .grid { grid-template-columns: minmax(0, 1fr) } }
+.col { display: grid; gap: 20px; min-width: 0 }
+
+section.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 16px 18px; min-width: 0 }
+.panel > h2 { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0 0 12px; font: 600 18px/1.2 var(--f-display) }
+.panel > h2 small { font: 13px var(--f-body); color: var(--muted) }
+.empty { color: var(--muted); padding: 6px 0; display: grid; gap: 8px; justify-items: start }
+
+/* Heute */
+.counts { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px }
+.pill { font-size: 13px; padding: 3px 10px; border-radius: 999px; background: var(--accent-soft); color: var(--ink) }
+.pill.warn { background: var(--warn-soft); color: var(--warn) }
+.pill.soon { background: var(--soon-soft); color: var(--soon) }
+.termine { list-style: none; margin: 0; padding: 0; display: grid }
+.termin { display: grid; grid-template-columns: 6.5em minmax(0, 1fr); gap: 4px 14px; padding: 10px 0; border-top: 1px solid var(--line) }
+.termin:first-child { border-top: 0 }
+.termin .zeit { font: 13px/1.6 var(--f-mono); color: var(--muted); font-variant-numeric: tabular-nums }
+.termin .titel { font-weight: 600 }
+.termin .vorb { grid-column: 2; color: var(--muted); font-size: 14px }
+.tag { font-size: 12px; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); margin-left: 6px; white-space: nowrap }
+
+/* Aufgaben */
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden }
+.seg button { border: 0; background: transparent; padding: 4px 12px; font-size: 13px; color: var(--muted) }
+.seg button[aria-pressed="true"] { background: var(--accent-soft); color: var(--ink); font-weight: 600 }
+.gruppe { margin-top: 10px }
+.gruppe h3 { margin: 0; padding: 6px 0; font: 600 12px var(--f-body); letter-spacing: .06em; text-transform: uppercase; color: var(--muted) }
+.gruppe.warn h3 { color: var(--warn) }
+.liste { list-style: none; margin: 0; padding: 0 }
+.aufgabe { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 10px; align-items: start; padding: 10px 0; border-top: 1px solid var(--line) }
+.aufgabe input[type=checkbox] { width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--accent) }
+.aufgabe .txt { min-width: 0; overflow-wrap: anywhere }
+.aufgabe.done .txt { color: var(--muted); text-decoration: line-through }
+.meta { display: flex; flex-wrap: wrap; gap: 6px 10px; margin-top: 3px; font-size: 13px; color: var(--muted) }
+.meta .due { font-family: var(--f-mono); font-size: 12px; font-variant-numeric: tabular-nums }
+.meta .due.warn { color: var(--warn) }
+.acts { display: flex; gap: 2px; align-items: center }
+.icon { border: 0; background: transparent; width: 30px; height: 30px; border-radius: 8px; color: var(--muted); display: grid; place-items: center; font-size: 15px }
+.icon:hover { background: var(--accent-soft); color: var(--ink) }
+.icon:disabled { opacity: .3; cursor: default; background: transparent }
+.snooze { grid-column: 2 / -1; display: flex; flex-wrap: wrap; gap: 6px }
+details.erledigt { margin-top: 14px }
+details.erledigt summary { cursor: pointer; color: var(--muted); font-size: 14px }
+
+/* Eingang */
+.erfassen { display: grid; gap: 8px }
+.erfassen textarea { width: 100%; min-height: 84px; resize: vertical; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; background: var(--bg) }
+.erfassen .row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: center }
+.mic[aria-pressed="true"] { background: var(--warn-soft); color: var(--warn); border-color: var(--warn) }
+.partial { color: var(--muted); font-style: italic; min-height: 1.2em; font-size: 14px }
+.eingang { list-style: none; margin: 10px 0 0; padding: 0 }
+.eingang li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; padding: 8px 0; border-top: 1px solid var(--line); font-size: 14px }
+.eingang time { display: block; font: 12px var(--f-mono); color: var(--muted) }
+
+/* Kunden */
+.filter { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px }
+.filter input { flex: 1 1 140px; min-width: 0; border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; background: var(--bg) }
+.kunden { list-style: none; margin: 0; padding: 0 }
+.kunde { border-top: 1px solid var(--line) }
+.kunde > button { width: 100%; text-align: left; border: 0; background: transparent; padding: 10px 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px }
+.kunde .name { font-weight: 600 }
+.kunde .wann { font: 12px var(--f-mono); color: var(--muted); font-variant-numeric: tabular-nums; align-self: center }
+.kunde .next { grid-column: 1 / -1; font-size: 13px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.kunde .detail { padding: 0 0 12px; font-size: 14px; display: grid; gap: 8px }
+.kunde .detail h4 { margin: 0; font: 600 12px var(--f-body); letter-spacing: .06em; text-transform: uppercase; color: var(--muted) }
+.kunde .detail ul { margin: 0; padding-left: 18px }
+.kunde .detail p { margin: 0 }
+
+.toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 9px 16px; border-radius: 999px; font-size: 14px; max-width: calc(100% - 32px); z-index: 20 }
+.note { font-size: 13px; color: var(--muted) }
+@media (prefers-reduced-motion: no-preference) { .aufgabe, .kunde .detail { animation: rein .18s ease-out } @keyframes rein { from { opacity: .4; transform: translateY(2px) } } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <h1>Elf</h1>
+      <div class="date" id="heute-datum"></div>
+    </div>
+    <div class="tools">
+      <span class="stand" id="stand">Verbinde …</span>
+      <a class="btn" href="https://outlook.office.com/calendar/view/day" target="_blank" rel="noopener">Kalender</a>
+      <a class="btn" href="https://outlook.office.com/mail/inbox" target="_blank" rel="noopener">Posteingang</a>
+      <button class="btn primary" type="button" data-copy="Elf: Was steht heute an?">Briefing anfragen</button>
+    </div>
+  </header>
+
+  <p class="note" id="hinweis" hidden></p>
+
+  <div class="grid">
+    <div class="col">
+      <section class="panel" aria-labelledby="h-heute">
+        <h2 id="h-heute">Heute <small id="briefing-stand"></small></h2>
+        <div class="counts" id="counts"></div>
+        <ul class="termine" id="termine"></ul>
+      </section>
+
+      <section class="panel" aria-labelledby="h-aufgaben">
+        <h2 id="h-aufgaben">Aufgaben
+          <span class="seg" role="group" aria-label="Gruppieren">
+            <button type="button" id="g-faellig" aria-pressed="true">Nach Fälligkeit</button>
+            <button type="button" id="g-kunde" aria-pressed="false">Nach Kunde</button>
+          </span>
+        </h2>
+        <div id="aufgaben"><div class="empty">Aufgaben werden geladen. Sobald Elf den Stand geschickt hat, stehen sie hier, nach Fälligkeit sortiert.</div></div>
+        <details class="erledigt" id="erledigt-box" hidden>
+          <summary id="erledigt-sum">Erledigt</summary>
+          <ul class="liste" id="erledigt"></ul>
+        </details>
+      </section>
+    </div>
+
+    <div class="col">
+      <section class="panel" aria-labelledby="h-eingang">
+        <h2 id="h-eingang">Eingang <small>Elf sortiert beim nächsten Start ein</small></h2>
+        <form class="erfassen" id="erfassen">
+          <label for="eingang-text" class="note">Notiz, Aufgabe oder Kurzinfo</label>
+          <textarea id="eingang-text" placeholder="z. B. Angebot für Kunde X bis Freitag schicken"></textarea>
+          <div class="partial" id="partial" aria-live="polite"></div>
+          <div class="row">
+            <button class="btn mic" type="button" id="mic" hidden aria-pressed="false">Diktieren</button>
+            <button class="btn primary" type="submit" id="speichern">In den Eingang</button>
+          </div>
+        </form>
+        <ul class="eingang" id="eingang"></ul>
+      </section>
+
+      <section class="panel" aria-labelledby="h-kunden">
+        <h2 id="h-kunden">Kunden und Themen <small id="kunden-zahl"></small></h2>
+        <div class="filter">
+          <input id="suche" type="search" placeholder="Suchen" aria-label="Kunden und Themen durchsuchen">
+          <span class="seg" role="group" aria-label="Bereich">
+            <button type="button" data-bereich="kunden" aria-pressed="true">Kunden</button>
+            <button type="button" data-bereich="intern" aria-pressed="false">Intern</button>
+            <button type="button" data-bereich="privat" aria-pressed="false">Privat</button>
+          </span>
+        </div>
+        <ul class="kunden" id="kunden"><li class="empty">Kunden werden geladen.</li></ul>
+      </section>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const el = (tag, props = {}, ...kids) => {
+    const n = document.createElement(tag);
+    for (const [k, v] of Object.entries(props)) {
+      if (k === "class") n.className = v; else if (k === "text") n.textContent = v;
+      else if (k.startsWith("on")) n.addEventListener(k.slice(2), v); else if (v !== undefined && v !== null) n.setAttribute(k, v);
+    }
+    for (const c of kids) if (c != null) n.append(c);
+    return n;
+  };
+
+  // Datum
+  const iso = (d) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+  const heute = () => iso(new Date());
+  const plusTage = (n) => iso(new Date(Date.now() + n * 86400000));
+  const naechsterMontag = () => { const d = new Date(); const t = (8 - d.getDay()) % 7 || 7; return iso(new Date(d.getTime() + t * 86400000)); };
+  const tageBis = (s) => Math.round((new Date(s + "T12:00") - new Date(heute() + "T12:00")) / 86400000);
+  const kurz = (s) => new Date(s + "T12:00").toLocaleDateString("de-DE", { weekday: "short", day: "numeric", month: "numeric" });
+  $("heute-datum").textContent = new Date().toLocaleDateString("de-DE", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+
+  // Hinweis, Toast, Kopieren
+  let toastT;
+  const toast = (msg) => { const t = $("toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => (t.hidden = true), 2600); };
+  const kopieren = async (text) => {
+    try { await navigator.clipboard.writeText(text); toast("Kopiert. In die Elf-Session einfügen."); }
+    catch { toast(text); }
+  };
+  document.addEventListener("click", (e) => { const b = e.target.closest("[data-copy]"); if (b) kopieren(b.dataset.copy); });
+
+  // Zustand
+  const S = { aufgaben: new Map(), kunden: new Map(), eingang: new Map(), heute: null, stand: null, gruppe: "faellig", bereich: "kunden", offen: null, snooze: null, schreiben: true };
+  let db = null;
+
+  // Aufgaben
+  const dueKlasse = (a) => (!a.faellig ? "ohne" : a.faellig < heute() ? "ueber" : a.faellig === heute() ? "heute" : tageBis(a.faellig) <= 7 ? "woche" : "spaeter");
+  const dueText = (a) => {
+    if (!a.faellig) return "ohne Datum";
+    const n = tageBis(a.faellig);
+    if (n < 0) return `seit ${-n} ${-n === 1 ? "Tag" : "Tagen"} überfällig`;
+    if (n === 0) return "heute"; if (n === 1) return "morgen";
+    return kurz(a.faellig);
+  };
+  const sortiert = (arr) => arr.sort((x, y) => (x.reihenfolge ?? 1e9) - (y.reihenfolge ?? 1e9));
+
+  async function aendern(id, felder, okText) {
+    if (!db || !S.schreiben) { toast("Nur lesen: Änderungen gehen hier gerade nicht."); return false; }
+    try {
+      await db.doc("aufgaben/" + id).update({ ...felder, ausCockpit: true, geaendertAm: new Date().toISOString() });
+      if (okText) toast(okText);
+      return true;
+    } catch (e) {
+      if (e && e.code === "invalid_argument") S.schreiben = false;
+      toast("Nicht gespeichert: " + (e && e.message ? e.message : "unbekannter Fehler"));
+      return false;
+    }
+  }
+
+  function zeileAufgabe(a, liste) {
+    const li = el("li", { class: "aufgabe" + (a.erledigt ? " done" : "") });
+    const cb = el("input", { type: "checkbox", id: "cb-" + a.id, "aria-label": "Erledigt: " + a.text });
+    cb.checked = !!a.erledigt;
+    cb.addEventListener("change", async () => {
+      const ok = await aendern(a.id, cb.checked ? { erledigt: true, erledigtAm: new Date().toISOString() } : { erledigt: false, erledigtAm: null }, cb.checked ? "Erledigt" : "Wieder offen");
+      if (!ok) cb.checked = !cb.checked;
+    });
+    const meta = el("div", { class: "meta" },
+      el("span", { class: "due" + (dueKlasse(a) === "ueber" && !a.erledigt ? " warn" : ""), text: a.erledigt && a.erledigtAm ? "erledigt " + kurz(a.erledigtAm.slice(0, 10)) : dueText(a) }),
+      a.kunde ? el("span", { text: a.kunde }) : null);
+    const txt = el("div", { class: "txt" }, el("label", { for: "cb-" + a.id, text: a.text }), meta);
+    const acts = el("div", { class: "acts" });
+    if (!a.erledigt) {
+      const i = liste.indexOf(a);
+      acts.append(
+        el("button", { class: "icon", type: "button", title: "Nach oben", "aria-label": "Nach oben", disabled: i <= 0 ? "" : null, text: "↑", onclick: () => tauschen(a, liste[i - 1]) }),
+        el("button", { class: "icon", type: "button", title: "Nach unten", "aria-label": "Nach unten", disabled: i >= liste.length - 1 ? "" : null, text: "↓", onclick: () => tauschen(a, liste[i + 1]) }),
+        el("button", { class: "icon", type: "button", title: "Verschieben", "aria-label": "Verschieben", "aria-expanded": S.snooze === a.id ? "true" : "false", text: "⏱", onclick: () => { S.snooze = S.snooze === a.id ? null : a.id; renderAufgaben(); } }),
+        el("button", { class: "icon", type: "button", title: "Mit Elf besprechen", "aria-label": "Mit Elf besprechen", text: "↗", "data-copy": `Elf: Aufgabe ${a.id} „${a.text}“${a.kunde ? " (" + a.kunde + ")" : ""}: ` })
+      );
+    }
+    li.append(cb, txt, acts);
+    if (S.snooze === a.id) {
+      const setz = (d, t) => el("button", { class: "btn small", type: "button", text: t, onclick: async () => { S.snooze = null; await aendern(a.id, { faellig: d }, d ? "Verschoben auf " + kurz(d) : "Datum entfernt"); } });
+      li.append(el("div", { class: "snooze" }, setz(plusTage(1), "Morgen"), setz(plusTage(2), "Übermorgen"), setz(naechsterMontag(), "Nächste Woche"), setz(null, "Ohne Datum")));
+    }
+    return li;
+  }
+
+  async function tauschen(a, b) {
+    if (!a || !b) return;
+    const ra = a.reihenfolge ?? 0, rb = b.reihenfolge ?? 0;
+    if (await aendern(a.id, { reihenfolge: rb })) await aendern(b.id, { reihenfolge: ra === rb ? rb + 1 : ra });
+  }
+
+  function renderAufgaben() {
+    const alle = [...S.aufgaben.values()];
+    const offen = sortiert(alle.filter((a) => !a.erledigt));
+    const box = $("aufgaben"); box.replaceChildren();
+    if (!alle.length) { box.append(el("div", { class: "empty", text: "Keine Aufgaben im Cockpit. Elf schickt sie beim nächsten Abgleich." })); }
+    else if (!offen.length) { box.append(el("div", { class: "empty", text: "Alles erledigt." })); }
+    let gruppen;
+    if (S.gruppe === "faellig") {
+      const defs = [["ueber", "Überfällig", "warn"], ["heute", "Heute"], ["woche", "Nächste 7 Tage"], ["spaeter", "Später"], ["ohne", "Ohne Datum"]];
+      gruppen = defs.map(([k, t, c]) => ({ t, c, items: offen.filter((a) => dueKlasse(a) === k) }));
+    } else {
+      const map = new Map();
+      for (const a of offen) { const k = a.kunde || "Ohne Zuordnung"; if (!map.has(k)) map.set(k, []); map.get(k).push(a); }
+      gruppen = [...map.entries()].sort((x, y) => x[0].localeCompare(y[0], "de")).map(([t, items]) => ({ t, items }));
+    }
+    for (const g of gruppen) {
+      if (!g.items.length) continue;
+      const ul = el("ul", { class: "liste" });
+      for (const a of g.items) ul.append(zeileAufgabe(a, g.items));
+      box.append(el("div", { class: "gruppe" + (g.c ? " " + g.c : "") }, el("h3", { text: `${g.t} · ${g.items.length}` }), ul));
+    }
+    const grenze = plusTage(-14);
+    const done = alle.filter((a) => a.erledigt && (a.erledigtAm || "").slice(0, 10) >= grenze).sort((x, y) => (y.erledigtAm || "").localeCompare(x.erledigtAm || ""));
+    $("erledigt-box").hidden = !done.length;
+    $("erledigt-sum").textContent = `Erledigt, letzte 14 Tage · ${done.length}`;
+    $("erledigt").replaceChildren(...done.map((a) => zeileAufgabe(a, done)));
+    renderCounts();
+  }
+
+  function renderCounts() {
+    const offen = [...S.aufgaben.values()].filter((a) => !a.erledigt);
+    const n = (k) => offen.filter((a) => dueKlasse(a) === k).length;
+    const c = $("counts"); c.replaceChildren();
+    if (n("ueber")) c.append(el("span", { class: "pill warn", text: `${n("ueber")} überfällig` }));
+    if (n("heute")) c.append(el("span", { class: "pill soon", text: `${n("heute")} heute fällig` }));
+    if (n("woche")) c.append(el("span", { class: "pill", text: `${n("woche")} in den nächsten 7 Tagen` }));
+    if (!c.children.length && offen.length) c.append(el("span", { class: "pill", text: "Heute nichts fällig" }));
+  }
+
+  // Heute (Briefing)
+  function renderHeute() {
+    const ul = $("termine"); ul.replaceChildren();
+    const h = S.heute;
+    if (!h || h.datum !== heute() || !Array.isArray(h.termine)) {
+      $("briefing-stand").textContent = "";
+      ul.append(el("li", { class: "empty" }, el("span", { text: "Noch kein Briefing für heute. Elf liest dazu deinen Kalender und bereitet die Termine vor." }),
+        el("button", { class: "btn small", type: "button", "data-copy": "Elf: Was steht heute an?", text: "Anfrage kopieren" })));
+      return;
+    }
+    $("briefing-stand").textContent = h.erstellt ? "Briefing " + new Date(h.erstellt).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }) : "";
+    if (!h.termine.length) { ul.append(el("li", { class: "empty", text: "Heute keine Termine im Kalender." })); return; }
+    for (const t of h.termine) {
+      ul.append(el("li", { class: "termin" },
+        el("span", { class: "zeit", text: t.zeit || "" }),
+        el("span", { class: "titel" }, t.titel || "", t.art ? el("span", { class: "tag", text: t.art }) : null),
+        t.vorbereitung ? el("span", { class: "vorb", text: t.vorbereitung }) : null));
+    }
+  }
+
+  // Kunden
+  function renderKunden() {
+    const q = $("suche").value.trim().toLowerCase();
+    const alle = [...S.kunden.values()];
+    const liste = alle.filter((k) => k.bereich === S.bereich)
+      .filter((k) => !q || [k.name, k.stand, k.naechster, ...(k.ansprechpartner || [])].join(" ").toLowerCase().includes(q))
+      .sort((x, y) => (y.letzterKontakt || "").localeCompare(x.letzterKontakt || ""));
+    $("kunden-zahl").textContent = alle.length ? `${liste.length} von ${alle.filter((k) => k.bereich === S.bereich).length}` : "";
+    const ul = $("kunden"); ul.replaceChildren();
+    if (!alle.length) { ul.append(el("li", { class: "empty", text: "Noch keine Kunden im Cockpit. Elf schickt sie beim nächsten Abgleich." })); return; }
+    if (!liste.length) { ul.append(el("li", { class: "empty", text: "Nichts gefunden." })); return; }
+    for (const k of liste) {
+      const offen = S.offen === k.id;
+      const wann = k.letzterKontakt ? (tageBis(k.letzterKontakt) === 0 ? "heute" : `vor ${-tageBis(k.letzterKontakt)} T.`) : "–";
+      const li = el("li", { class: "kunde" },
+        el("button", { type: "button", "aria-expanded": offen ? "true" : "false", onclick: () => { S.offen = offen ? null : k.id; renderKunden(); } },
+          el("span", { class: "name", text: k.name }), el("span", { class: "wann", text: wann }),
+          el("span", { class: "next", text: k.naechster && k.naechster !== "offen" ? "Nächster Schritt: " + k.naechster : (k.stand || "").slice(0, 120) })));
+      if (offen) {
+        const d = el("div", { class: "detail" });
+        if (k.stand) d.append(el("h4", { text: "Stand" }), el("p", { text: k.stand }));
+        if (k.naechster) d.append(el("h4", { text: "Nächster Schritt" }), el("p", { text: k.naechster }));
+        if (k.offen?.length) d.append(el("h4", { text: "Offene Punkte" }), el("ul", {}, ...k.offen.map((x) => el("li", { text: x }))));
+        if (k.ansprechpartner?.length) d.append(el("h4", { text: "Ansprechpartner" }), el("ul", {}, ...k.ansprechpartner.map((x) => el("li", { text: x }))));
+        d.append(el("div", { class: "tools" },
+          el("button", { class: "btn small", type: "button", "data-copy": `Elf: Was ist bei ${k.name} offen?`, text: "Mit Elf besprechen" }),
+          el("button", { class: "btn small", type: "button", "data-copy": `Elf: Bereite meinen nächsten Termin mit ${k.name} vor.`, text: "Termin vorbereiten" })));
+        li.append(d);
+      }
+      ul.append(li);
+    }
+  }
+  $("suche").addEventListener("input", renderKunden);
+  document.querySelectorAll("[data-bereich]").forEach((b) => b.addEventListener("click", () => {
+    S.bereich = b.dataset.bereich; S.offen = null;
+    document.querySelectorAll("[data-bereich]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+    renderKunden();
+  }));
+  const gruppeSetzen = (g) => { S.gruppe = g; $("g-faellig").setAttribute("aria-pressed", String(g === "faellig")); $("g-kunde").setAttribute("aria-pressed", String(g === "kunde")); renderAufgaben(); };
+  $("g-faellig").addEventListener("click", () => gruppeSetzen("faellig"));
+  $("g-kunde").addEventListener("click", () => gruppeSetzen("kunde"));
+
+  // Eingang
+  function renderEingang() {
+    const items = [...S.eingang.values()].filter((x) => x.status !== "uebernommen").sort((x, y) => (y.erstellt || "").localeCompare(x.erstellt || ""));
+    $("eingang").replaceChildren(...items.map((x) => el("li", {},
+      el("div", {}, el("time", { text: x.erstellt ? new Date(x.erstellt).toLocaleString("de-DE", { day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" }) + " · wartet auf Elf" : "" }), el("span", { text: x.text })),
+      el("button", { class: "icon", type: "button", title: "Zurücknehmen", "aria-label": "Zurücknehmen", text: "×", onclick: async () => {
+        try { await db.doc("eingang/" + x.id).delete(); toast("Zurückgenommen"); } catch (e) { toast("Nicht gelöscht: " + (e?.message || "Fehler")); }
+      } }))));
+  }
+  $("erfassen").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const ta = $("eingang-text"); const text = ta.value.trim();
+    if (!text) { toast("Erst etwas eintippen oder diktieren."); return; }
+    if (!db) { toast("Keine Verbindung: Text bleibt im Feld."); return; }
+    try { await db.collection("eingang").add({ text, erstellt: new Date().toISOString(), quelle: "cockpit", status: "neu" }); ta.value = ""; toast("Im Eingang"); }
+    catch (err) { toast("Nicht gespeichert: " + (err?.message || "Fehler")); }
+  });
+
+  // Diktat
+  (async () => {
+    const d = await window.claude?.use?.("dictation");
+    if (!d) return;
+    const mic = $("mic"); mic.hidden = false;
+    const ta = $("eingang-text");
+    d.onPartial(({ text }) => { $("partial").textContent = text; });
+    d.onFinal(({ text }) => { ta.value = ta.value ? ta.value + text : text.trimStart(); $("partial").textContent = ""; });
+    d.onState(({ state, reason }) => {
+      const an = state !== "idle";
+      mic.setAttribute("aria-pressed", String(an)); mic.textContent = an ? "Stopp" : "Diktieren";
+      if (state === "idle" && reason === "unavailable") mic.hidden = true;
+      if (state === "idle" && (reason === "rate_limited" || reason === "upstream_error")) toast("Diktat gerade nicht möglich. Bitte tippen.");
+    });
+    mic.addEventListener("click", () => {
+      if (d.active()) { d.stop(); return; }
+      d.start().catch((e) => { if (e?.code === "not_granted") { mic.hidden = true; toast("Diktat ist für diese Seite aus."); } });
+    });
+  })();
+
+  // Datenbank
+  (async () => {
+    db = await window.claude?.use?.("db");
+    if (!db) { $("stand").textContent = "Keine Verbindung zur Ablage"; return; }
+    const ladeT = setTimeout(() => { const h = $("hinweis"); h.hidden = false; h.textContent = "Die Daten lassen sich gerade nicht laden. Angezeigtes kann veraltet sein."; }, 10000);
+    const fertig = (snap) => { if (!snap.metadata.fromCache) { clearTimeout(ladeT); $("hinweis").hidden = true; } };
+    const fehler = (e) => { clearTimeout(ladeT); const h = $("hinweis"); h.hidden = false; h.textContent = "Verbindung unterbrochen: Seite neu öffnen. (" + (e?.code || "Fehler") + ")"; };
+    const abo = (name, map, render) => db.collection(name).onSnapshot((snap) => {
+      map.clear(); for (const d of snap.docs) map.set(d.id, { id: d.id, ...d.data() }); render(); fertig(snap);
+    }, fehler);
+    abo("aufgaben", S.aufgaben, renderAufgaben);
+    abo("kunden", S.kunden, renderKunden);
+    abo("eingang", S.eingang, renderEingang);
+    db.doc("meta/heute").onSnapshot((d) => { S.heute = d.exists ? d.data() : null; renderHeute(); }, fehler);
+    db.doc("meta/stand").onSnapshot((d) => {
+      const s = d.exists ? d.data() : null;
+      $("stand").textContent = s?.aktualisiert ? "Stand von Elf: " + new Date(s.aktualisiert).toLocaleString("de-DE", { day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" }) : "Noch kein Abgleich";
+    }, fehler);
+  })();
+
+  renderHeute();
+})();
+</script>

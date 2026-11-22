@@ -4,8 +4,24 @@
     {
       "name": "nova-elf",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["start"],
+      "runtimeArgs": [
+        "start"
+      ],
       "port": 4311
+    },
+    {
+      "name": "cockpit",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "4320",
+        "--bind",
+        "127.0.0.1",
+        "--directory",
+        "cockpit"
+      ],
+      "port": 4320
     }
   ]
 }

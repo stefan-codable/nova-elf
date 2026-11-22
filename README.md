@@ -1,5 +1,7 @@
 # Nova Elf
 
+> **Eingefroren seit 22.11.2026.** Nova Elf läuft jetzt als Assistent in Claude Code (Desktop-App): Session in diesem Ordner öffnen. Ablage in `daten/`, Regeln in `CLAUDE.md`, Konzept in `docs/elf-harness-konzept.md`. Die Web-App unten zeigt nur noch den alten Stand aus `data/`.
+
 Der kleine Helfer für Gesprächsnotizen: Themen anlegen (Kunden, Intern), Einträge chronologisch mittippen oder als Foto hochladen, und daraus Zusammenfassung, Empfehlungen und To-dos mit Termin ableiten lassen. Läuft vollständig auf dem eigenen Rechner; nur für Auswertung und Foto-Erkennung geht der jeweilige Text bzw. das Bild an die Claude API.
 
 ## Start
