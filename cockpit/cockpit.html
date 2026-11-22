@@ -345,14 +345,15 @@ details.erledigt summary { cursor: pointer; color: var(--muted); font-size: 14px
     $("mails-titel").textContent = `Ungelesene Mails · ${mails.length}${n ? ` · ${n} mit Antwort nötig` : ""}`;
     const ul = $("mail-liste"); ul.replaceChildren();
     if (!mails.length) ul.append(el("li", { class: "empty", text: "Nichts, das eine Handlung braucht." }));
-    for (const m of mails) {
+    for (const [i, m] of mails.entries()) {
       const zeit = (m.eingang || "").slice(11, 16) || (m.eingang || "").slice(5, 10);
       ul.append(el("li", { class: "termin mail" },
         el("span", { class: "zeit", text: zeit }),
         el("span", {}, el("span", { class: "von", text: m.von || "" }), m.art ? el("span", { class: "tag art-" + m.art, text: ART_TEXT[m.art] || m.art }) : null,
           el("span", { class: "betreff", text: m.betreff ? " · " + m.betreff : "" })),
         m.kern ? el("span", { class: "vorb", text: m.kern }) : null,
-        m.art === "antwort" ? el("span", { class: "vorb" }, el("button", { class: "btn small", type: "button", text: "Antwort entwerfen lassen", "data-copy": `Elf: Entwirf eine Antwort auf die Mail von ${m.von} „${m.betreff}“: ` })) : null));
+        m.art === "antwort" ? el("span", { class: "vorb" }, el("button", { class: "btn small", type: "button", text: "Antwort entwerfen lassen", "data-copy": `Elf: Entwirf eine Antwort auf Mail Nr. ${i + 1} aus dem Briefing vom ${h.datum}.` })) : null));
+      // Absender und Betreff stammen aus fremden Mails: nie in den kopierten Text, nur die Nummer.
     }
     const rest = $("mails-rest");
     rest.hidden = !h.mailsUebrige;

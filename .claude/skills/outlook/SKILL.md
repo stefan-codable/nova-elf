@@ -25,6 +25,7 @@ description: Liest Stefans Outlook-Kalender und -Postfach über den eingebauten 
 5. Filter am Ende zurück auf „Alle“ stellen.
 
 ## Entwürfe und Senden
+„Mail Nr. N aus dem Briefing vom JJJJ-MM-TT“ heißt: Eintrag N (ab 1) in `mails` von `daten/briefings/JJJJ-MM-TT.json`, die Mail dann in Outlook über Absender und Betreff suchen.
 1. Text in Stefans Ton (`daten/wissen/arbeitsweise.md`), Fakten nur aus `daten/` und der Mail, mit `emil-unslop-writing` glätten.
 2. Entwurf im Chat zeigen: An, Cc, Betreff, Text.
 3. Auf Wunsch in Outlook als Entwurf anlegen (Neue E-Mail bzw. Antworten, Felder füllen, schließen; Outlook speichert den Entwurf).
