@@ -87,6 +87,11 @@ a.olink { color: inherit; text-decoration: underline; text-decoration-color: var
 a.olink:hover { text-decoration-color: var(--accent); color: var(--accent) }
 .tag.art-antwort { border-color: var(--warn); color: var(--warn) }
 .tag.art-termin { border-color: var(--soon); color: var(--soon) }
+/* Antwort-Entwurf liegt schon in Outlook: Lime als Kontrast, Link öffnet den Entwurf samt Zitat */
+a.entwurf { display: inline-flex; align-items: center; gap: 6px; justify-self: start; background: var(--mark); color: var(--mark-ink); font-size: 13px; font-weight: 600; padding: 3px 10px; border-radius: 999px; text-decoration: none; border: 1px solid var(--mark) }
+a.entwurf::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--mark-ink) }
+a.entwurf:hover { border-color: var(--mark-ink) }
+span.entwurf { font-size: 13px; font-weight: 600; color: var(--ink) }
 
 /* Aufgaben */
 .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden }
@@ -424,7 +429,8 @@ details.erledigt summary { cursor: pointer; color: var(--muted); font-size: 14px
   // Heute (Briefing)
   const ART_TEXT = { antwort: "Antwort nötig", termin: "Termin", info: "Info" };
   // Direktlink in Outlook Web, nur auf Outlook-Adressen
-  const outlook = (url, ...kids) => typeof url === "string" && /^https:\/\/outlook\.(cloud\.microsoft|office\.com)\//.test(url)
+  const OUTLOOK_URL = /^https:\/\/outlook\.(cloud\.microsoft|office\.com)\//;
+  const outlook = (url, ...kids) => typeof url === "string" && OUTLOOK_URL.test(url)
     ? el("a", { class: "olink", href: url, target: "_blank", rel: "noopener", title: "In Outlook öffnen" }, ...kids)
     : el("span", {}, ...kids);
   function renderMails(h) {
@@ -438,12 +444,18 @@ details.erledigt summary { cursor: pointer; color: var(--muted); font-size: 14px
     if (!mails.length) ul.append(el("li", { class: "empty", text: "Nichts, das eine Handlung braucht." }));
     for (const [i, m] of mails.entries()) {
       const zeit = (m.eingang || "").slice(11, 16) || (m.eingang || "").slice(5, 10);
+      // Mit Entwurf öffnet der Link den Entwurf (Antwort samt Zitat der Mail), sonst die Mail
+      const link = m.entwurf && OUTLOOK_URL.test(m.entwurfLink || "") ? m.entwurfLink : m.link;
+      const entwurf = !m.entwurf ? null : OUTLOOK_URL.test(m.entwurfLink || "")
+        ? el("a", { class: "entwurf", href: m.entwurfLink, target: "_blank", rel: "noopener", title: "Entwurf in Outlook öffnen", text: "Entwurf liegt in Outlook" })
+        : el("span", { class: "entwurf", text: "Entwurf liegt in Outlook" });
       ul.append(el("li", { class: "termin mail" },
         el("span", { class: "zeit", text: zeit }),
-        el("span", {}, outlook(m.link, el("span", { class: "von", text: m.von || "" }),
+        el("span", {}, outlook(link, el("span", { class: "von", text: m.von || "" }),
           el("span", { class: "betreff", text: m.betreff ? " · " + m.betreff : "" })), m.art ? el("span", { class: "tag art-" + m.art, text: ART_TEXT[m.art] || m.art }) : null),
         m.kern ? el("span", { class: "vorb", text: m.kern }) : null,
-        m.art === "antwort" ? el("span", { class: "vorb" }, el("button", { class: "btn small", type: "button", text: "Antwort entwerfen lassen", "data-copy": `Elf: Entwirf eine Antwort auf Mail Nr. ${i + 1} aus dem Briefing vom ${h.datum}.` })) : null));
+        entwurf ? el("span", { class: "vorb" }, entwurf)
+          : m.art === "antwort" ? el("span", { class: "vorb" }, el("button", { class: "btn small", type: "button", text: "Antwort entwerfen lassen", "data-copy": `Elf: Entwirf eine Antwort auf Mail Nr. ${i + 1} aus dem Briefing vom ${h.datum}.` })) : null));
       // Absender und Betreff stammen aus fremden Mails: nie in den kopierten Text, nur die Nummer.
     }
     const rest = $("mails-rest");
