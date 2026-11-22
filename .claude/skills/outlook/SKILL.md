@@ -29,6 +29,7 @@ Links nur aus der Seite lesen, nie raten. Mit dem JavaScript-Werkzeug des Browse
   **Nie** `data-convid` mit `/mail/inbox/id/…` verlinken: Das öffnet nur Konversationen, die gerade oben in der geladenen Liste stehen, sonst landet Stefan im Posteingang.
 - Termin: Eltern-Element des Termin-Knopfs (`[role=button]` mit Datum im `aria-label`) hat `data-calitemid` → `https://outlook.cloud.microsoft/calendar/item/<encodeURIComponent(id)>` (geprüft, öffnet den Termin).
 - Die Werkzeugausgabe blockt Base64- und lange Hex-Werte: IDs im Skript als Hex in 16er-Gruppen mit Bindestrich ausgeben (`hex.match(/.{1,16}/g).join('-')`) und lokal zurückwandeln.
+- Steht eine Mail nicht in der geladenen Liste (ältere ungelesene, Liste lädt beim Scrollen nicht nach): Betreff ins Suchfeld oben tippen (`find` „Search“, dreifach klicken, tippen, Enter), 3–4 Sekunden warten, dann denselben `itemId`-Code auf die Trefferliste anwenden und die Zeile über `data-convid` zuordnen. Öffnet keine Mail, der Gelesen-Status bleibt.
 - Findest du für eine Mail keine Kennung: `link` weglassen, nie einen Link raten.
 - Die Liste lädt beim Scrollen nach: Scroll-Container per Skript schrittweise bewegen und dabei sammeln. Das öffnet keine Mail, der Gelesen-Status bleibt.
 
