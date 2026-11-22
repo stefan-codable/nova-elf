@@ -69,6 +69,8 @@ section.panel { background: var(--surface); border: 1px solid var(--line); borde
 .mails h3 { margin: 6px 0 2px; font: 600 12px var(--f-body); letter-spacing: .06em; text-transform: uppercase; color: var(--muted) }
 .mail .von { font-weight: 600 }
 .mail .betreff { overflow-wrap: anywhere }
+a.olink { color: inherit; text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px }
+a.olink:hover { text-decoration-color: var(--accent); color: var(--accent) }
 .tag.art-antwort { border-color: var(--warn); color: var(--warn) }
 .tag.art-termin { border-color: var(--soon); color: var(--soon) }
 
@@ -143,7 +145,7 @@ details.erledigt summary { cursor: pointer; color: var(--muted); font-size: 14px
   <div class="grid">
     <div class="col">
       <section class="panel" aria-labelledby="h-heute">
-        <h2 id="h-heute">Heute <small id="briefing-stand"></small></h2>
+        <h2 id="h-heute"><span id="heute-titel">Heute</span> <small id="briefing-stand"></small></h2>
         <div class="counts" id="counts"></div>
         <ul class="termine" id="termine"></ul>
         <div class="mails" id="mails" hidden>
@@ -336,9 +338,13 @@ details.erledigt summary { cursor: pointer; color: var(--muted); font-size: 14px
 
   // Heute (Briefing)
   const ART_TEXT = { antwort: "Antwort nötig", termin: "Termin", info: "Info" };
+  // Direktlink in Outlook Web, nur auf Outlook-Adressen
+  const outlook = (url, ...kids) => typeof url === "string" && /^https:\/\/outlook\.(cloud\.microsoft|office\.com)\//.test(url)
+    ? el("a", { class: "olink", href: url, target: "_blank", rel: "noopener", title: "In Outlook öffnen" }, ...kids)
+    : el("span", {}, ...kids);
   function renderMails(h) {
     const box = $("mails");
-    const mails = h && h.datum === heute() && Array.isArray(h.mails) ? h.mails : null;
+    const mails = h && h.datum && h.datum >= heute() && Array.isArray(h.mails) ? h.mails : null;
     box.hidden = !mails;
     if (!mails) return;
     const n = mails.filter((m) => m.art === "antwort").length;
@@ -349,8 +355,8 @@ details.erledigt summary { cursor: pointer; color: var(--muted); font-size: 14px
       const zeit = (m.eingang || "").slice(11, 16) || (m.eingang || "").slice(5, 10);
       ul.append(el("li", { class: "termin mail" },
         el("span", { class: "zeit", text: zeit }),
-        el("span", {}, el("span", { class: "von", text: m.von || "" }), m.art ? el("span", { class: "tag art-" + m.art, text: ART_TEXT[m.art] || m.art }) : null,
-          el("span", { class: "betreff", text: m.betreff ? " · " + m.betreff : "" })),
+        el("span", {}, outlook(m.link, el("span", { class: "von", text: m.von || "" }),
+          el("span", { class: "betreff", text: m.betreff ? " · " + m.betreff : "" })), m.art ? el("span", { class: "tag art-" + m.art, text: ART_TEXT[m.art] || m.art }) : null),
         m.kern ? el("span", { class: "vorb", text: m.kern }) : null,
         m.art === "antwort" ? el("span", { class: "vorb" }, el("button", { class: "btn small", type: "button", text: "Antwort entwerfen lassen", "data-copy": `Elf: Entwirf eine Antwort auf Mail Nr. ${i + 1} aus dem Briefing vom ${h.datum}.` })) : null));
       // Absender und Betreff stammen aus fremden Mails: nie in den kopierten Text, nur die Nummer.
@@ -364,18 +370,23 @@ details.erledigt summary { cursor: pointer; color: var(--muted); font-size: 14px
     const ul = $("termine"); ul.replaceChildren();
     const h = S.heute;
     renderMails(h);
-    if (!h || h.datum !== heute() || !Array.isArray(h.termine)) {
+    // Briefing von heute oder das nächste vorbereitete (z. B. Sonntagabend für Montag)
+    const gueltig = h && h.datum && h.datum >= heute() && Array.isArray(h.termine);
+    const n = gueltig ? tageBis(h.datum) : 0;
+    $("heute-titel").textContent = !gueltig || n === 0 ? "Heute" : n === 1 ? "Morgen"
+      : new Date(h.datum + "T12:00").toLocaleDateString("de-DE", { weekday: "long", day: "numeric", month: "numeric" });
+    if (!gueltig) {
       $("briefing-stand").textContent = "";
       ul.append(el("li", { class: "empty" }, el("span", { text: "Noch kein Briefing für heute. Elf liest dazu Kalender und ungelesene Mails und bereitet die Termine vor." }),
         el("button", { class: "btn small", type: "button", "data-copy": "Elf: Was steht heute an?", text: "Anfrage kopieren" })));
       return;
     }
     $("briefing-stand").textContent = h.erstellt ? "Briefing " + new Date(h.erstellt).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }) : "";
-    if (!h.termine.length) { ul.append(el("li", { class: "empty", text: "Heute keine Termine im Kalender." })); return; }
+    if (!h.termine.length) { ul.append(el("li", { class: "empty", text: n === 0 ? "Heute keine Termine im Kalender." : "Keine Termine im Kalender." })); return; }
     for (const t of h.termine) {
       ul.append(el("li", { class: "termin" },
         el("span", { class: "zeit", text: t.zeit || "" }),
-        el("span", { class: "titel" }, t.titel || "", t.art ? el("span", { class: "tag", text: t.art }) : null),
+        el("span", { class: "titel" }, outlook(t.link, t.titel || ""), t.art ? el("span", { class: "tag", text: t.art }) : null),
         t.vorbereitung ? el("span", { class: "vorb", text: t.vorbereitung }) : null));
     }
   }

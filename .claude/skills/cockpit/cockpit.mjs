@@ -89,8 +89,12 @@ function sollBauen() {
     });
   }
 
-  const bj = join(D, "briefings", `${heute()}.json`);
-  docs.meta.set("heute", existsSync(bj) ? { datum: heute(), ...readJson(bj) } : { datum: null, termine: [] });
+  // Briefing von heute, sonst das nächste vorbereitete (z. B. Sonntagabend für Montag).
+  const bdir = join(D, "briefings");
+  const bdatum = existsSync(bdir)
+    ? readdirSync(bdir).map((f) => /^(\d{4}-\d{2}-\d{2})\.json$/.exec(f)?.[1]).filter((d) => d && d >= heute()).sort()[0]
+    : undefined;
+  docs.meta.set("heute", bdatum ? { datum: bdatum, ...readJson(join(bdir, `${bdatum}.json`)) } : { datum: null, termine: [] });
   const offen = aufgaben.filter((a) => !a.erledigt).length;
   const rf = read(join(D, "wissen", "rueckfragen.md")).split("\n").filter((l) => /^\d+\.\s/.test(l)).length;
   docs.meta.set("stand", { offeneAufgaben: offen, rueckfragen: rf });
