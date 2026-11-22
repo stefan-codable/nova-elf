@@ -4,7 +4,7 @@ Stand 22.11.2026. Noch nichts gebaut. Ersetzt für den Anfang den Server-und-Sla
 
 ## 1. Die Idee in einem Absatz
 
-Nova Elf wird kein weiteres Programm, sondern ein Arbeitsordner, den Claude Code in der Desktop-App bedient, wie den Nova Harness. Du öffnest eine Session in `~/Sites/nova-elf`, diktierst oder fügst ein, und Elf ordnet ein, fasst zusammen, leitet To-dos ab, fragt bei Unklarem einmal nach und merkt sich die Antwort. Die Daten liegen als lesbare Dateien mit eigenem Git im Ordner. Outlook und Kalender liest Elf über den eingebauten Browser. Ein Artefakt („Cockpit“) zeigt To-dos, Kunden und Termine zum Lesen, Abhaken und Sortieren. Alles läuft über das Abo, ohne API-Schlüssel, ohne Server, ohne Slack.
+Nova Elf wird kein weiteres Programm, sondern ein Arbeitsordner, den Claude Code in der Desktop-App bedient, wie den Nova Harness. Du öffnest eine Session in `~/Sites/nova-elf`, diktierst oder fügst ein, und Elf ordnet ein, fasst zusammen, leitet To-dos ab, fragt bei Unklarem einmal nach und merkt sich die Antwort. Die Daten liegen als lesbare Dateien mit eigenem Git im Ordner. Outlook und Kalender liest Elf über Claude in Chrome, wo Stefan angemeldet ist (im eingebauten Browser der App klappt die Microsoft-Anmeldung nicht). Ein Artefakt („Cockpit“) zeigt To-dos, Kunden und Termine zum Lesen, Abhaken und Sortieren. Alles läuft über das Abo, ohne API-Schlüssel, ohne Server, ohne Slack.
 
 ## 2. Was geprüft ist
 
@@ -99,7 +99,7 @@ Damit Angebote und Präsentationen wirklich gut werden, braucht Elf Material von
 
 | | A: Browser (sofort) | B: Microsoft-365-Connector (später) |
 |---|---|---|
-| Einrichtung | einmal im eingebauten Browser anmelden | Zustimmung eures Microsoft-Admins |
+| Einrichtung | keine, Claude in Chrome nutzt Stefans Anmeldung | Zustimmung eures Microsoft-Admins |
 | Lesen | Kalender und Postfach über die Weboberfläche | Suche in Mails und Kalender, deutlich robuster und schneller |
 | Senden | Entwurf, Senden nach Ja | nach meinem Stand nur lesend, Senden weiter über A |
 | Grenzen | nur bei offener App, langsamer, kann bei Outlook-Umbauten haken | Admin nötig |

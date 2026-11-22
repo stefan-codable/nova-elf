@@ -96,7 +96,18 @@ a.olink:hover { text-decoration-color: var(--accent); color: var(--accent) }
 .gruppe h3 { margin: 0; padding: 6px 0; font: 600 12px var(--f-body); letter-spacing: .06em; text-transform: uppercase; color: var(--muted) }
 .gruppe.warn h3 { color: var(--warn) }
 .liste { list-style: none; margin: 0; padding: 0 }
-.aufgabe { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 10px; align-items: start; padding: 10px 0; border-top: 1px solid var(--line) }
+.aufgabe { display: grid; grid-template-columns: 12px 22px minmax(0, 1fr) auto; gap: 10px; align-items: start; padding: 10px 8px 10px 4px; margin-inline: -8px -4px; border-top: 1px solid var(--line); border-radius: 8px; background: var(--surface) }
+.aufgabe.ziehbar { cursor: grab; touch-action: pan-y }
+.aufgabe.ziehbar:hover { background: color-mix(in srgb, var(--accent-soft) 45%, var(--surface)) }
+.griff { width: 12px; height: 22px; color: var(--muted); opacity: .35; font-size: 14px; line-height: 22px; text-align: center; user-select: none }
+.aufgabe:hover .griff, .aufgabe:focus-within .griff { opacity: 1 }
+.sortable-ghost { opacity: .35; background: var(--accent-soft) !important; border-top-color: transparent }
+.sortable-drag, .sortable-fallback { box-shadow: 0 10px 30px rgba(7, 17, 33, .28); border: 1px solid var(--accent); cursor: grabbing; opacity: 1 !important }
+body.zieht, body.zieht * { cursor: grabbing !important; user-select: none }
+.gruppe.leer { display: none }
+body.zieht .gruppe.leer { display: block }
+body.zieht .gruppe.leer .liste { min-height: 46px; border: 1px dashed var(--accent); border-radius: 8px }
+body.zieht .liste { min-height: 12px }
 .aufgabe input[type=checkbox] { width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--accent) }
 .aufgabe .txt { min-width: 0; overflow-wrap: anywhere }
 .aufgabe.done .txt { color: var(--muted); text-decoration: line-through }
@@ -107,7 +118,7 @@ a.olink:hover { text-decoration-color: var(--accent); color: var(--accent) }
 .icon { border: 0; background: transparent; width: 30px; height: 30px; border-radius: 8px; color: var(--muted); display: grid; place-items: center; font-size: 15px }
 .icon:hover { background: var(--accent-soft); color: var(--ink) }
 .icon:disabled { opacity: .3; cursor: default; background: transparent }
-.snooze { grid-column: 2 / -1; display: flex; flex-wrap: wrap; gap: 6px }
+.snooze { grid-column: 3 / -1; display: flex; flex-wrap: wrap; gap: 6px }
 details.erledigt { margin-top: 14px }
 details.erledigt summary { cursor: pointer; color: var(--muted); font-size: 14px }
 
@@ -218,6 +229,7 @@ details.erledigt summary { cursor: pointer; color: var(--muted); font-size: 14px
 </div>
 <div class="toast" id="toast" role="status" hidden></div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js" integrity="sha512-TelkP3PCMJv+viMWynjKcvLsQzx6dJHvIGhfqzFtZKgAjKM1YPqcwzzDEoTc/BHjf43PcPzTQOjuTr4YdE8lNQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script>
 (() => {
   const $ = (id) => document.getElementById(id);
@@ -250,7 +262,8 @@ details.erledigt summary { cursor: pointer; color: var(--muted); font-size: 14px
   document.addEventListener("click", (e) => { const b = e.target.closest("[data-copy]"); if (b) kopieren(b.dataset.copy); });
 
   // Zustand
-  const S = { aufgaben: new Map(), kunden: new Map(), eingang: new Map(), heute: null, stand: null, gruppe: "faellig", bereich: "kunden", offen: null, snooze: null, schreiben: true };
+  const S = { aufgaben: new Map(), kunden: new Map(), eingang: new Map(), heute: null, stand: null, gruppe: "faellig", bereich: "kunden", offen: null, snooze: null, schreiben: true,
+    sortables: [], ziehen: false, nachZiehen: false, fokus: null };
   let db = null;
 
   // Aufgaben
@@ -277,8 +290,8 @@ details.erledigt summary { cursor: pointer; color: var(--muted); font-size: 14px
     }
   }
 
-  function zeileAufgabe(a, liste) {
-    const li = el("li", { class: "aufgabe" + (a.erledigt ? " done" : "") });
+  function zeileAufgabe(a) {
+    const li = el("li", { class: "aufgabe" + (a.erledigt ? " done" : " ziehbar"), "data-id": a.id });
     const cb = el("input", { type: "checkbox", id: "cb-" + a.id, "aria-label": "Erledigt: " + a.text });
     cb.checked = !!a.erledigt;
     cb.addEventListener("change", async () => {
@@ -291,15 +304,23 @@ details.erledigt summary { cursor: pointer; color: var(--muted); font-size: 14px
     const txt = el("div", { class: "txt" }, el("label", { for: "cb-" + a.id, text: a.text }), meta);
     const acts = el("div", { class: "acts" });
     if (!a.erledigt) {
-      const i = liste.indexOf(a);
+      // Tastatur: Alt + Pfeil hoch/runter verschiebt innerhalb der Gruppe
+      li.addEventListener("keydown", (e) => {
+        if (!e.altKey || (e.key !== "ArrowUp" && e.key !== "ArrowDown")) return;
+        e.preventDefault();
+        const ids = [...li.parentElement.children].map((x) => x.dataset.id);
+        const i = ids.indexOf(a.id), j = i + (e.key === "ArrowUp" ? -1 : 1);
+        if (j < 0 || j >= ids.length) return;
+        ids.splice(i, 1); ids.splice(j, 0, a.id);
+        S.fokus = a.id;
+        aendern(a.id, { reihenfolge: zwischen(ids, j) });
+      });
       acts.append(
-        el("button", { class: "icon", type: "button", title: "Nach oben", "aria-label": "Nach oben", disabled: i <= 0 ? "" : null, text: "↑", onclick: () => tauschen(a, liste[i - 1]) }),
-        el("button", { class: "icon", type: "button", title: "Nach unten", "aria-label": "Nach unten", disabled: i >= liste.length - 1 ? "" : null, text: "↓", onclick: () => tauschen(a, liste[i + 1]) }),
-        el("button", { class: "icon", type: "button", title: "Verschieben", "aria-label": "Verschieben", "aria-expanded": S.snooze === a.id ? "true" : "false", text: "⏱", onclick: () => { S.snooze = S.snooze === a.id ? null : a.id; renderAufgaben(); } }),
+        el("button", { class: "icon", type: "button", title: "Datum ändern", "aria-label": "Datum ändern", "aria-expanded": S.snooze === a.id ? "true" : "false", text: "⏱", onclick: () => { S.snooze = S.snooze === a.id ? null : a.id; renderAufgaben(); } }),
         el("button", { class: "icon", type: "button", title: "Mit Elf besprechen", "aria-label": "Mit Elf besprechen", text: "↗", "data-copy": `Elf: Aufgabe ${a.id} „${a.text}“${a.kunde ? " (" + a.kunde + ")" : ""}: ` })
       );
     }
-    li.append(cb, txt, acts);
+    li.append(el("span", { class: "griff", "aria-hidden": "true", text: a.erledigt ? "" : "⠿" }), cb, txt, acts);
     if (S.snooze === a.id) {
       const setz = (d, t) => el("button", { class: "btn small", type: "button", text: t, onclick: async () => { S.snooze = null; await aendern(a.id, { faellig: d }, d ? "Verschoben auf " + kurz(d) : "Datum entfernt"); } });
       li.append(el("div", { class: "snooze" }, setz(plusTage(1), "Morgen"), setz(plusTage(2), "Übermorgen"), setz(naechsterMontag(), "Nächste Woche"), setz(null, "Ohne Datum")));
@@ -307,13 +328,58 @@ details.erledigt summary { cursor: pointer; color: var(--muted); font-size: 14px
     return li;
   }
 
-  async function tauschen(a, b) {
-    if (!a || !b) return;
-    const ra = a.reihenfolge ?? 0, rb = b.reihenfolge ?? 0;
-    if (await aendern(a.id, { reihenfolge: rb })) await aendern(b.id, { reihenfolge: ra === rb ? rb + 1 : ra });
+  // Neue Reihenfolge für die Aufgabe an Position i der Liste ids: zwischen den Nachbarn, damit nur eine Aufgabe geschrieben wird
+  const rf = (id) => S.aufgaben.get(id)?.reihenfolge ?? 0;
+  function zwischen(ids, i) {
+    const vor = i > 0 ? rf(ids[i - 1]) : null, nach = i < ids.length - 1 ? rf(ids[i + 1]) : null;
+    if (vor === null && nach === null) return rf(ids[i]);
+    if (vor === null) return nach - 1;
+    if (nach === null) return vor + 1;
+    return vor === nach ? vor + 0.001 : (vor + nach) / 2;
+  }
+  // Datum, wenn eine Aufgabe in eine andere Fälligkeitsgruppe gezogen wird (bleibt, wenn es schon passt)
+  function datumFuer(gruppe, a) {
+    if (dueKlasse(a) === gruppe) return a.faellig;
+    if (gruppe === "heute") return heute();
+    if (gruppe === "woche") return plusTage(1);
+    if (gruppe === "spaeter") { const m = naechsterMontag(); return tageBis(m) > 7 ? m : iso(new Date(new Date(m + "T12:00").getTime() + 7 * 86400000)); }
+    return null;
+  }
+  const GRUPPE_TEXT = { heute: "heute", woche: "morgen", ohne: "ohne Datum" };
+
+  function ziehenAn(ul, gruppe) {
+    if (!window.Sortable) return;
+    S.sortables.push(window.Sortable.create(ul, {
+      group: { name: S.gruppe === "faellig" ? "faellig" : "kunde-" + gruppe, pull: true, put: gruppe !== "ueber" },
+      draggable: ".aufgabe.ziehbar", filter: "input, button, a, .snooze", preventOnFilter: false,
+      animation: 160, easing: "cubic-bezier(.2,.7,.3,1)", forceFallback: true, fallbackOnBody: true,
+      delayOnTouchOnly: true, delay: 180, touchStartThreshold: 4, emptyInsertThreshold: 24,
+      ghostClass: "sortable-ghost", chosenClass: "sortable-chosen", fallbackClass: "sortable-fallback",
+      onStart: () => { S.ziehen = true; S.snooze = null; document.body.classList.add("zieht"); },
+      onEnd: async (evt) => {
+        document.body.classList.remove("zieht");
+        const id = evt.item.dataset.id, a = S.aufgaben.get(id);
+        const ids = [...evt.to.children].map((x) => x.dataset.id).filter(Boolean);
+        const neu = ids.indexOf(id);
+        const wechsel = evt.from !== evt.to;
+        S.ziehen = false;
+        if (!a || neu < 0 || (!wechsel && evt.oldIndex === evt.newIndex)) { if (S.nachZiehen) { S.nachZiehen = false; renderAufgaben(); } return; }
+        const felder = { reihenfolge: zwischen(ids, neu) };
+        let text = null;
+        if (wechsel && S.gruppe === "faellig") {
+          const ziel = evt.to.dataset.gruppe, d = datumFuer(ziel, a);
+          if (d !== a.faellig) { felder.faellig = d; text = d ? (GRUPPE_TEXT[ziel] === "heute" ? "Auf heute gelegt" : "Fällig " + kurz(d)) : "Datum entfernt"; }
+        }
+        S.nachZiehen = false;
+        const ok = await aendern(id, felder, text);
+        if (!ok) renderAufgaben();
+      },
+    }));
   }
 
   function renderAufgaben() {
+    for (const s of S.sortables) s.destroy();
+    S.sortables = [];
     const alle = [...S.aufgaben.values()];
     const offen = sortiert(alle.filter((a) => !a.erledigt));
     const box = $("aufgaben"); box.replaceChildren();
@@ -322,23 +388,26 @@ details.erledigt summary { cursor: pointer; color: var(--muted); font-size: 14px
     let gruppen;
     if (S.gruppe === "faellig") {
       const defs = [["ueber", "Überfällig", "warn"], ["heute", "Heute"], ["woche", "Nächste 7 Tage"], ["spaeter", "Später"], ["ohne", "Ohne Datum"]];
-      gruppen = defs.map(([k, t, c]) => ({ t, c, items: offen.filter((a) => dueKlasse(a) === k) }));
+      gruppen = defs.map(([k, t, c]) => ({ k, t, c, items: offen.filter((a) => dueKlasse(a) === k) }));
     } else {
       const map = new Map();
       for (const a of offen) { const k = a.kunde || "Ohne Zuordnung"; if (!map.has(k)) map.set(k, []); map.get(k).push(a); }
-      gruppen = [...map.entries()].sort((x, y) => x[0].localeCompare(y[0], "de")).map(([t, items]) => ({ t, items }));
+      gruppen = [...map.entries()].sort((x, y) => x[0].localeCompare(y[0], "de")).map(([t, items], i) => ({ k: "k" + i, t, items }));
     }
-    for (const g of gruppen) {
-      if (!g.items.length) continue;
-      const ul = el("ul", { class: "liste" });
-      for (const a of g.items) ul.append(zeileAufgabe(a, g.items));
-      box.append(el("div", { class: "gruppe" + (g.c ? " " + g.c : "") }, el("h3", { text: `${g.t} · ${g.items.length}` }), ul));
+    if (offen.length) for (const g of gruppen) {
+      // Leere Fälligkeitsgruppen bleiben als Ablagefläche beim Ziehen da (außer Überfällig)
+      if (!g.items.length && (S.gruppe !== "faellig" || g.k === "ueber")) continue;
+      const ul = el("ul", { class: "liste", "data-gruppe": g.k });
+      for (const a of g.items) ul.append(zeileAufgabe(a));
+      box.append(el("div", { class: "gruppe" + (g.c ? " " + g.c : "") + (g.items.length ? "" : " leer") }, el("h3", { text: g.items.length ? `${g.t} · ${g.items.length}` : g.t }), ul));
+      ziehenAn(ul, g.k);
     }
+    if (S.fokus) { const f = document.getElementById("cb-" + S.fokus); S.fokus = null; if (f) f.focus(); }
     const grenze = plusTage(-14);
     const done = alle.filter((a) => a.erledigt && (a.erledigtAm || "").slice(0, 10) >= grenze).sort((x, y) => (y.erledigtAm || "").localeCompare(x.erledigtAm || ""));
     $("erledigt-box").hidden = !done.length;
     $("erledigt-sum").textContent = `Erledigt, letzte 14 Tage · ${done.length}`;
-    $("erledigt").replaceChildren(...done.map((a) => zeileAufgabe(a, done)));
+    $("erledigt").replaceChildren(...done.map((a) => zeileAufgabe(a)));
     renderCounts();
   }
 
@@ -497,7 +566,8 @@ details.erledigt summary { cursor: pointer; color: var(--muted); font-size: 14px
     const abo = (name, map, render) => db.collection(name).onSnapshot((snap) => {
       map.clear(); for (const d of snap.docs) map.set(d.id, { id: d.id, ...d.data() }); render(); fertig(snap);
     }, fehler);
-    abo("aufgaben", S.aufgaben, renderAufgaben);
+    // Kommt während des Ziehens ein neuer Stand, erst danach neu zeichnen
+    abo("aufgaben", S.aufgaben, () => { if (S.ziehen) S.nachZiehen = true; else renderAufgaben(); });
     abo("kunden", S.kunden, renderKunden);
     abo("eingang", S.eingang, renderEingang);
     db.doc("meta/heute").onSnapshot((d) => { S.heute = d.exists ? d.data() : null; renderHeute(); }, fehler);

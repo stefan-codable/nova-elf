@@ -1,14 +1,15 @@
 ---
 name: outlook
-description: Liest Stefans Outlook-Kalender und -Postfach über den eingebauten Browser der Desktop-App und legt Mail-Entwürfe an. Senden, Zusagen und Absagen nur nach Stefans ausdrücklichem Ja für genau diese Aktion. Nutzen für Termine eines Tages oder einer Woche, "was muss ich beantworten", Mail suchen, Mail-Entwurf, Einladung prüfen.
+description: Liest Stefans Outlook-Kalender und -Postfach über Claude in Chrome (Stefans Chrome, dort ist er angemeldet) und legt Mail-Entwürfe an. Senden, Zusagen und Absagen nur nach Stefans ausdrücklichem Ja für genau diese Aktion. Nutzen für Termine eines Tages oder einer Woche, "was muss ich beantworten", Mail suchen, Mail-Entwurf, Einladung prüfen.
 ---
 
 # Outlook (Browser, ohne Connector)
 
 ## Zugang
-- Eingebauter Browser (`mcp__Claude_Browser__*`). Nur auf Stefans Wunsch Claude in Chrome.
-- Adressen: Kalender Tag `https://outlook.office.com/calendar/view/day`, Arbeitswoche `…/calendar/view/workweek`, Posteingang `https://outlook.office.com/mail/inbox`. Outlook leitet auf `outlook.cloud.microsoft` um, das ist richtig.
-- Landet die Seite auf `login.microsoftonline.com`: Stefan bitten, sich im Browser-Bereich selbst anzumelden, und warten. Nie selbst Zugangsdaten, Codes oder Bestätigungen eingeben.
+- **Claude in Chrome** (`mcp__claude-in-chrome__*`, Werkzeuge per ToolSearch laden), eigener Tab in der Elf-Tabgruppe, am Ende schließen. Dort ist Stefan bei Microsoft angemeldet.
+- **Nicht** den eingebauten Browser der Desktop-App nutzen: Die Microsoft-Anmeldung funktioniert dort nicht (Stefan, 22.11.2026). Stefan nicht bitten, sich dort anzumelden.
+- Adressen: Kalender Tag `https://outlook.cloud.microsoft/calendar/view/day`, Arbeitswoche `…/calendar/view/workweek`, Posteingang `https://outlook.cloud.microsoft/mail/inbox`.
+- Landet die Seite trotzdem auf `login.microsoftonline.com`: Stefan sagen, dass er sich in Chrome neu anmelden muss, und warten. Nie selbst Zugangsdaten, Codes oder Bestätigungen eingeben.
 
 ## Lesen
 - Text vor Bild: `get_page_text` bzw. `read_page`, Screenshot nur, wenn Text nicht reicht. Seite nach dem Laden kurz warten lassen (Outlook lädt nach).
@@ -19,9 +20,16 @@ description: Liest Stefans Outlook-Kalender und -Postfach über den eingebauten 
 
 ## Direktlinks (für Briefing und Cockpit)
 Links nur aus der Seite lesen, nie raten. Mit dem JavaScript-Werkzeug des Browsers:
-- Mail: Listeneintrag `[role=option]` hat `data-convid` → `https://outlook.cloud.microsoft/mail/inbox/id/<encodeURIComponent(convid)>`
-- Termin: Eltern-Element des Termin-Knopfs (`[role=button]` mit Datum im `aria-label`) hat `data-calitemid` → `https://outlook.cloud.microsoft/calendar/item/<encodeURIComponent(id)>`
-- Die Werkzeugausgabe blockt Base64-Werte: IDs im Skript als Hex ausgeben und lokal zurückwandeln.
+- Mail: Kennung der Nachricht (nicht der Konversation) aus den React-Daten des Listeneintrags `[role=option][data-convid]`:
+  ```js
+  const itemId = (row) => { const fk = Object.keys(row).find(k => k.startsWith('__reactFiber$')); let f = row[fk];
+    for (let i = 0; f && i < 6; i++, f = f.return) { const p = f.memoizedProps?.mailListItemDataProps; if (p?.latestItemId) return p.latestItemId; } return null; };
+  ```
+  → `https://outlook.cloud.microsoft/mail/deeplink/read/<encodeURIComponent(itemId)>`. Öffnet die Mail direkt vom Server, egal wo sie in der Liste steht (geprüft 22.11.2026).
+  **Nie** `data-convid` mit `/mail/inbox/id/…` verlinken: Das öffnet nur Konversationen, die gerade oben in der geladenen Liste stehen, sonst landet Stefan im Posteingang.
+- Termin: Eltern-Element des Termin-Knopfs (`[role=button]` mit Datum im `aria-label`) hat `data-calitemid` → `https://outlook.cloud.microsoft/calendar/item/<encodeURIComponent(id)>` (geprüft, öffnet den Termin).
+- Die Werkzeugausgabe blockt Base64- und lange Hex-Werte: IDs im Skript als Hex in 16er-Gruppen mit Bindestrich ausgeben (`hex.match(/.{1,16}/g).join('-')`) und lokal zurückwandeln.
+- Findest du für eine Mail keine Kennung: `link` weglassen, nie einen Link raten.
 - Die Liste lädt beim Scrollen nach: Scroll-Container per Skript schrittweise bewegen und dabei sammeln. Das öffnet keine Mail, der Gelesen-Status bleibt.
 
 ## Ungelesene prüfen
